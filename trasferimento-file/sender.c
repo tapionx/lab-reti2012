@@ -17,6 +17,9 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #define SOCKET_ERROR   ((int)-1)
 #define SIZEBUF 1000000
 
@@ -26,28 +29,34 @@ int main(int argc, char *argv[])
     #define MAXSIZE 1000000 
     struct sockaddr_in Local, Serv;
     char string_remote_ip_address[100];
+    char filename[100];
     short int remote_port_number, local_port_number;
     int socketfd, OptVal, msglen, Fromlen, ris;
     int n, i, nread, nwrite, len;
     char buf[MAXSIZE];
     char msg[MAXSIZE];   // ="012345ABCD";
 
+    FILE to_transfer;
+
     for(i=0;i<MAXSIZE;i++) msg[i]='a';
     msg[MAXSIZE-1]='\0';
 
 
-    if(argc!=3) { printf ("necessari 2 parametri\n"); usage(); exit(1);  }
-    else {
-    strncpy(string_remote_ip_address, argv[1], 99);
-    remote_port_number = atoi(argv[2]);
+    if(argc!=4) { 
+        printf ("necessari 2 parametrii: IP PORT FILE\n");  
+        exit(1);  
+    } else {
+        strncpy(string_remote_ip_address, argv[1], 99);
+        remote_port_number = atoi(argv[2]);
+        strncpy(filename = argv[3], 99);
     }
 
     /* get a datagram socket */
     printf ("socket()\n");
     socketfd = socket(AF_INET, SOCK_STREAM, 0);
     if (socketfd == SOCKET_ERROR) {
-    printf ("socket() failed, Err: %d \"%s\"\n", errno,strerror(errno));
-    exit(1);
+        printf ("socket() failed, Err: %d \"%s\"\n", errno,strerror(errno));
+        exit(1);
     }
 
     /* avoid EADDRINUSE error on bind() */
@@ -55,8 +64,8 @@ int main(int argc, char *argv[])
     printf ("setsockopt()\n");
     ris = setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, (char *)&OptVal, sizeof(OptVal));
     if (ris == SOCKET_ERROR)  {
-    printf ("setsockopt() SO_REUSEADDR failed, Err: %d \"%s\"\n", errno,strerror(errno));
-    exit(1);
+        printf ("setsockopt() SO_REUSEADDR failed, Err: %d \"%s\"\n", errno,strerror(errno));
+        exit(1);
     }
 
     /* name the socket */
@@ -69,8 +78,8 @@ int main(int argc, char *argv[])
     printf ("bind()\n");
     ris = bind(socketfd, (struct sockaddr*) &Local, sizeof(Local));
     if (ris == SOCKET_ERROR)  {
-    printf ("bind() failed, Err: %d \"%s\"\n",errno,strerror(errno));
-    exit(1);
+        printf ("bind() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        exit(1);
     }
 
     /* assign our destination address */
@@ -79,12 +88,19 @@ int main(int argc, char *argv[])
     Serv.sin_addr.s_addr  =	inet_addr(string_remote_ip_address);
     Serv.sin_port		 =	htons(remote_port_number);
 
+    /* Open the file to be transfered in READ MODE */
+    to_transfer = open( filename, O_RDONLY);
+    if (to_transfer == -1) {
+        printf("open() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        exit(1);
+    }
+
     /* connection request */
     printf ("connect()\n");
     ris = connect(socketfd, (struct sockaddr*) &Serv, sizeof(Serv));
     if (ris == SOCKET_ERROR)  {
-    printf ("connect() failed, Err: %d \"%s\"\n",errno,strerror(errno));
-    exit(1);
+        printf ("connect() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        exit(1);
     }
     printf ("dopo connect()\n");
     fflush(stdout);
