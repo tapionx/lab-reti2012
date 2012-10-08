@@ -26,15 +26,17 @@
 
 int main(int argc, char *argv[])
 {
-    #define MAXSIZE 1000000 
+    #define BUFSIZE 1024 
     struct sockaddr_in Local, Serv;
     char string_remote_ip_address[100];
     char filename[100];
     short int remote_port_number, local_port_number;
     int socketfd, OptVal, msglen, Fromlen, ris;
     int n, i, nread, nwrite, len;
-    char buf[MAXSIZE];
-    char msg[MAXSIZE];   // ="012345ABCD";
+    
+    char buf[BUFSIZE];
+
+    ssize_t nread = 0;
 
     FILE to_transfer;
 
@@ -105,14 +107,18 @@ int main(int argc, char *argv[])
     printf ("dopo connect()\n");
     fflush(stdout);
 
+    /* Trasferimento del file */
+    while( (nread = read(to_transfer, buf, BUFSIZE)) > 0) {
 
-    /* scrittura */
     len = strlen(msg)+1;
-    nwrite=0;
+
     printf ("write()\n");
     fflush(stdout);
-    while( (n=write(socketfd, &(msg[nwrite]), len-nwrite)) >0 )
-     nwrite+=n;
+    while( (n=write(socketfd, &(msg[nwrite]), len-nwrite)) > 0 )
+    {
+        
+    }
+    nwrite+=n;
     if(n<0) {
     char msgerror[1024];
     sprintf(msgerror,"write() failed [err %d] ",errno);
