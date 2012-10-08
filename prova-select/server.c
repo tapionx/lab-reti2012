@@ -6,7 +6,6 @@
 
 /* Se scade il timeout dice che é scaduto il timeout e si rimette in attesa con la select() */
 
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -16,6 +15,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <sys/time.h>
+#include <unistd.h>
 
 #define SOCKET_ERROR   ((int)-1)
 #define SIZEBUF 100000L
@@ -27,6 +29,10 @@ int main(int argc, char *argv[]){
 	short int remote_port_number, local_port_number;
 	int socketfd, OptVal, msglen, Fromlen, ris;
 	char msg[SIZEBUF];
+
+    fd_set rfds;
+    struct timeval tv;
+    int retval;
 
 	if(argc!=2) { 
         printf ("necessario 1 parametri\n"); 
@@ -65,22 +71,42 @@ int main(int argc, char *argv[]){
 		exit(1);
 	}
 
-	while(1)
-    {
+	while(1){
 
-        /* RECVFROM() */
-        Fromlen=sizeof(struct sockaddr_in);
-        msglen = recvfrom ( socketfd, msg, (int)SIZEBUF, 0, (struct sockaddr*)&From, &Fromlen);
-        if (msglen<0) {
-            char msgerror[1024];
-            sprintf(msgerror,"recvfrom() failed [err %d] ", errno);
-            perror(msgerror);
-        }
-        sprintf((char*)string_remote_ip_address,"%s",inet_ntoa(From.sin_addr));
-        remote_port_number = ntohs(From.sin_port);
-        printf("ricevuto  msg: \"%s\" len %d, from host %s, port %d\n",
-               msg, msglen, string_remote_ip_address, remote_port_number);
-	}
+        /* Watch stdin (fd 0) to see when it has input. */
+        FD_ZERO(&rfds);
+        FD_SET(socketfd, &rfds);
+
+        /* Wait up to five seconds. */
+        tv.tv_sec = 5;
+        tv.tv_usec = 0;
+
+        retval = select(socketfd+1, &rfds, NULL, NULL, &tv);
+        /* Don't rely on the value of tv now! */
+
+        if (retval == -1)
+           perror("select()");
+        else if (retval) {
+           printf("Data is available now.\n");
+           /* FD_ISSET(0, &rfds) will be true. */
+            /* RECVFROM() */
+            Fromlen=sizeof(struct sockaddr_in);
+            msglen = recvfrom ( socketfd, msg, (int)SIZEBUF, 0, (struct sockaddr*)&From, (socklen_t *)&Fromlen);
+            if (msglen<0) {
+                char msgerror[1024];
+                sprintf(msgerror,"recvfrom() failed [err %d] ", errno);
+                perror(msgerror);
+            }
+            sprintf((char*)string_remote_ip_address,"%s",inet_ntoa(From.sin_addr));
+            remote_port_number = ntohs(From.sin_port);
+            printf("ricevuto  msg: \"%s\" len %d, from host %s, port %hu\n",
+                   msg, msglen, string_remote_ip_address, remote_port_number);
+            
+            memset(msg, 0, sizeof(msg));
+        } else {
+           printf("No data within five seconds.\n");
+        }	
+    }
 
 	return (0);
 }
