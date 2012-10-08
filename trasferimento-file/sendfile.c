@@ -30,19 +30,15 @@ int main(int argc, char *argv[])
     struct sockaddr_in Local, Serv;
     char string_remote_ip_address[100];
     char filename[100];
-    short int remote_port_number, local_port_number;
-    int socketfd, OptVal, msglen, Fromlen, ris;
-    int n, i, nread, nwrite, len;
-    
+    short int remote_port_number;
+    int socketfd, OptVal, ris;
+	
     char buf[BUFSIZE];
 
-    ssize_t nread = 0;
+    ssize_t nread = 0;	
+	ssize_t nwrite = 0;
 
-    FILE to_transfer;
-
-    for(i=0;i<MAXSIZE;i++) msg[i]='a';
-    msg[MAXSIZE-1]='\0';
-
+    int to_transfer;
 
     if(argc!=4) { 
         printf ("necessari 2 parametrii: IP PORT FILE\n");  
@@ -50,7 +46,7 @@ int main(int argc, char *argv[])
     } else {
         strncpy(string_remote_ip_address, argv[1], 99);
         remote_port_number = atoi(argv[2]);
-        strncpy(filename = argv[3], 99);
+        strncpy(filename, argv[3], 99);
     }
 
     /* get a datagram socket */
@@ -76,7 +72,7 @@ int main(int argc, char *argv[])
     /* indicando INADDR_ANY viene collegato il socket all'indirizzo locale IP     */
     /* dell'interaccia di rete che verrà utilizzata per inoltrare i dati          */
     Local.sin_addr.s_addr	=	htonl(INADDR_ANY);         /* wildcard */
-    Local.sin_port	=	htons(0);
+    Local.sin_port	=	htons(59000);
     printf ("bind()\n");
     ris = bind(socketfd, (struct sockaddr*) &Local, sizeof(Local));
     if (ris == SOCKET_ERROR)  {
@@ -91,7 +87,7 @@ int main(int argc, char *argv[])
     Serv.sin_port		 =	htons(remote_port_number);
 
     /* Open the file to be transfered in READ MODE */
-    to_transfer = open( filename, O_RDONLY);
+    to_transfer = open(filename, O_RDONLY);
     if (to_transfer == -1) {
         printf("open() failed, Err: %d \"%s\"\n",errno,strerror(errno));
         exit(1);
@@ -109,53 +105,36 @@ int main(int argc, char *argv[])
 
     /* Trasferimento del file */
     while( (nread = read(to_transfer, buf, BUFSIZE)) > 0) {
+		
+		nwrite = write(socketfd, buf, nread);
+		
+		if (nwrite == -1)
+		{
+			printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        	exit(1);
+   		}
+		
+		if (nread != nwrite)
+		{
+			printf ("write() failed, Err: Not all the data has been sent");
+        	exit(1);
+		}
 
-    len = strlen(msg)+1;
+	}
 
-    printf ("write()\n");
-    fflush(stdout);
-    while( (n=write(socketfd, &(msg[nwrite]), len-nwrite)) > 0 )
-    {
-        
-    }
-    nwrite+=n;
-    if(n<0) {
-    char msgerror[1024];
-    sprintf(msgerror,"write() failed [err %d] ",errno);
-    perror(msgerror);
-    fflush(stdout);
-    return(1);
-    }
-
-    /* lettura */
-    nread=0;
-    printf ("read()\n");
-    fflush(stdout);
-    while( (len>nread) && ((n=read(socketfd, &(buf[nread]), len-nread )) >0))
-    {
-     nread+=n;
-     printf("read effettuata, risultato n=%d  len=%d nread=%d\
-    len-nread=%d\n", n, len, nread, len-nread );
-     fflush(stdout);
-
-    }
-    if(n<0) {
-    char msgerror[1024];
-    sprintf(msgerror,"read() failed [err %d] ",errno);
-    perror(msgerror);
-    fflush(stdout);
-    return(1);
-    }
-
-    /* stampa risultato 
-    printf("stringa traslata: %s\n", buf);
-    fflush(stdout);
-    */
-
+	if (nread == -1)
+	{
+		 printf ("read() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+         exit(1);
+	}
+	else
+	{
+		printf ("Hai scritto, genio!\n");
+	}
 
     /* chiusura */
     close(socketfd);
-
+	close(to_transfer);
     return(0);
 }
 
