@@ -20,7 +20,7 @@
 #include <unistd.h>
 
 #define SOCKET_ERROR   ((int)-1)
-#define SIZEBUF 100000L
+#define SIZEBUF 100000
 
 int main(int argc, char *argv[]){
 
