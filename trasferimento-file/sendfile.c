@@ -1,10 +1,11 @@
 /* 
-   cliTCP.c    spedisce stringa, riceve stringa traslata
-   su SunOS compilare con gcc -o cliTCP.c -lsocket -lnsl cliTCP.c
-   su linux               gcc -o cliTCP cliTCP.c                   
 
-   eseguire ad esempio su 137.204.72.49 lanciando la seguente riga di comandi
-   cliTCP 130.136.2.7 5001 
+    sendfile.c - Trasferisce un file attraverso una connessione TCP
+
+    usage:
+
+    sendfile.exe IP_ADDRESS PORT FILEPATH
+
 */
 #include <unistd.h>
 #include <stdio.h>
@@ -100,8 +101,10 @@ int main(int argc, char *argv[])
         printf ("connect() failed, Err: %d \"%s\"\n",errno,strerror(errno));
         exit(1);
     }
-    printf ("dopo connect()\n");
+    printf ("connessione TCP avvenuta\n");
     fflush(stdout);
+
+    printf("inizio trasferimento file\n");
 
     /* Trasferimento del file */
     while( (nread = read(to_transfer, buf, BUFSIZE)) > 0) {
@@ -129,12 +132,15 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		printf ("Hai scritto, genio!\n");
+		printf ("Trasferimento completato\n");
 	}
 
     /* chiusura */
     close(socketfd);
 	close(to_transfer);
+
+    printf("Connessione TCP chiusa\n");
+
     return(0);
 }
 
