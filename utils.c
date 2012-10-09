@@ -107,7 +107,7 @@ int TCP_connection_send(const char *remote_ip, int remote_port){
 
     sock_connect(tcp_sock, &server);
 
-    printf ("dopo connect()\n");
+    printf ("connessione avvenuta\n");
     fflush(stdout);
 
     return tcp_sock;
