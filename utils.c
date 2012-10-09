@@ -12,9 +12,9 @@ int get_socket(int type){
     /* SOCK_STREAM = TCP
      * SOCK_DGRAM  = UDP
      */
-    int socketfd;
+   int socketfd;
     printf ("socket()\n");
-    socketfd = socket(AF_INET, SOCK_STREAM, 0);
+    socketfd = socket(AF_INET, type, 0);
     if (socketfd == -1) {
         printf ("socket() failed, Err: %d \"%s\"\n", errno,strerror(errno));
         exit(1);
@@ -128,6 +128,8 @@ int TCP_connection_recv(int local_port) {
 
     name_socket(&Local, htonl(INADDR_ANY), local_port);
 
+    sock_bind(sock,&Local); 
+
     sock_listen(sock);
 
     newsocketfd = sock_accept(sock, &Cli);
@@ -140,8 +142,14 @@ int TCP_connection_recv(int local_port) {
     return newsocketfd;
 }
 
+int UDP_sock(int local_port){
+    int sock;
+    struct sockaddr_in local;
 
-int main(int argc, char *argv[]){
-    int tcp_sock = TCP_connection_recv(atoi(argv[1]));
-    return(0);
+    sock = get_socket(SOCK_DGRAM);
+    sock_opt_reuseaddr(sock);
+    name_socket(&local, htonl(INADDR_ANY), local_port);
+    sock_bind(sock,&local);
+    
+    return sock;    
 }
