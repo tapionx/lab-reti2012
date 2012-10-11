@@ -58,13 +58,15 @@ int main(int argc, char *argv[])
     /* Transfer data */
     printf ("read()\n");
     while( (nread=read(socketfd, buf, BUFSIZE )) >0) {
+
+        printf("write()");
+       
+        printf("%s\n", buf);
+         
         nwrite = write(dest_file, buf, nread);
         if(nwrite == -1){
             printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
             exit(1);
-        }
-        if(nwrite != nread){
-            printf(" nread != nwrite O.o \n");
         }
     }
     

@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     int to_transfer;
 
     if(argc!=4) { 
-        printf ("necessari 2 parametrii: IP PORT FILE\n");  
+        printf ("necessari 3 parametrii: REMOTE_IP REMOTE_PORT FILE\n");  
         exit(1);  
     } else {
         strncpy(string_remote_ip_address, argv[1], 99);
@@ -64,18 +64,15 @@ int main(int argc, char *argv[])
 
     /* Trasferimento del file */
     while( (nread = read(to_transfer, buf, BUFSIZE)) > 0) {
-		
+	
+        printf("%s\n", buf);
+	
 		nwrite = write(socketfd, buf, nread);
 		
 		if (nwrite == -1){
 			printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
         	exit(1);
    		}
-		
-		if (nread != nwrite){
-			printf ("write() failed, Err: Not all the data has been sent");
-        	exit(1);
-		}
 	}
 
 	if (nread == -1){
