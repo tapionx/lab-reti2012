@@ -28,7 +28,7 @@ void sock_opt_reuseaddr(int socketfd){
     int ris;
     printf ("setsockopt()\n");
     ris = setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, (char *)&OptVal, sizeof(OptVal));
-    if (ris == -1) { 
+    if (ris == -1) {
         printf ("setsockopt() SO_REUSEADDR failed, Err: %d \"%s\"\n", errno,strerror(errno));
         exit(1);
     }
@@ -43,7 +43,7 @@ void name_socket(struct sockaddr_in *opt, uint32_t ip_address, uint16_t port){
      */
     opt->sin_addr.s_addr =   ip_address;
     opt->sin_port        =   htons(port);
-} 
+}
 
 void sock_bind(int socketfd, struct sockaddr_in* Local){
     int ris;
@@ -74,7 +74,7 @@ void sock_listen(int sock){
         printf ("listen() failed, Err: %d \"%s\"\n",errno,strerror(errno));
         exit(1);
     }
-} 
+}
 
 int sock_accept(int socketfd, struct sockaddr_in *opt){
     int len, newsocketfd;
@@ -118,25 +118,25 @@ int TCP_connection_send(const char *remote_ip, int remote_port){
  * and return the TCP socket when a client connects
  */
 int TCP_connection_recv(int local_port) {
-    
+
     int sock, newsocketfd;
     struct sockaddr_in Local, Cli;
 
     sock = get_socket(SOCK_STREAM);
-    
+
     sock_opt_reuseaddr(sock);
 
     name_socket(&Local, htonl(INADDR_ANY), local_port);
 
-    sock_bind(sock,&Local); 
+    sock_bind(sock,&Local);
 
     sock_listen(sock);
 
     newsocketfd = sock_accept(sock, &Cli);
 
     printf("connection from %s : %d\n",
-    inet_ntoa(Cli.sin_addr),
-    ntohs(Cli.sin_port)
+		inet_ntoa(Cli.sin_addr),
+		ntohs(Cli.sin_port)
     );
 
     return newsocketfd;
@@ -150,6 +150,6 @@ int UDP_sock(int local_port){
     sock_opt_reuseaddr(sock);
     name_socket(&local, htonl(INADDR_ANY), local_port);
     sock_bind(sock,&local);
-    
-    return sock;    
+
+    return sock;
 }

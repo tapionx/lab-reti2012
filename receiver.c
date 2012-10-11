@@ -37,9 +37,9 @@ int main(int argc, char *argv[])
     ssize_t nwrite = 0;
     ssize_t nread  = 0;
 
-    if(argc != 3) { 
+    if(argc != 3) {
         printf ("necessari 2 parametri: LOCAL_PORT FILE_NAME\n");
-        exit(1);  
+        exit(1);
     } else {
         local_port_number = atoi(argv[1]);
         strncpy(local_filename, argv[2], 99);
@@ -56,27 +56,28 @@ int main(int argc, char *argv[])
     socketfd = TCP_connection_recv(local_port_number);
 
     /* Transfer data */
-    printf ("read()\n");
     while( (nread=read(socketfd, buf, BUFSIZE )) >0) {
 
-        printf("write()");
-       
-        printf("%s\n", buf);
-         
+		printf ("read(): %d byte\n%s\n", nread,buf);
+
         nwrite = write(dest_file, buf, nread);
+
+        printf("write(): %d byte\n", nwrite);
+
         if(nwrite == -1){
             printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
             exit(1);
         }
+ 		memset(buf, 0, sizeof(buf));
     }
-    
+
     if(nread == -1) {
         printf ("read() failed, Err: %d \"%s\"\n",errno,strerror(errno));
         exit(1);
     }
 
-    printf("File letto correttamente\n");        
-  
+    printf("File letto correttamente\n");
+
     /* chiusura */
     printf ("close()\n");
     close(socketfd);

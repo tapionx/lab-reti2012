@@ -1,8 +1,3 @@
-/* 
-    Proxy Sender - riceve un flusso di dati TCP e lo trasmette in UDP
-    attraverso il ritardatore garantendo la correttezza della trasmissione
-*/
-
 #include <stdio.h>
 
 #include <unistd.h>
@@ -20,17 +15,17 @@
 
 #include "utils.h"
 
+#define BUFSIZE 50
 
 int main(int argc, char *argv[]){
 
-    #define BUFSIZE 1024
+	int udp_sock, tcp_sock, nread, nwrite, local_port, remote_port;
 
-    char buf[BUFSIZE];
-    char remote_ip[100];
-    int tcp_sock, udp_sock, nread, nwrite;
-    int local_port, remote_port;
+	struct sockaddr_in to;
 
-    struct sockaddr_in udp_to;
+	char buf[BUFSIZE];
+
+	char remote_ip[40];
 
     if(argc < 4){
         printf("usage: LOCAL_PORT REMOTE_IP REMOTE_PORT\n");
@@ -38,51 +33,28 @@ int main(int argc, char *argv[]){
     }
 
     local_port = atoi(argv[1]);
-    strncpy(remote_ip, argv[2], 99);
+    strncpy(remote_ip, argv[2], 39);
     remote_port = atoi(argv[3]);
 
-    udp_sock = UDP_sock(htons(0));
+	udp_sock = UDP_sock(0);
 
-    tcp_sock = TCP_connection_recv(local_port);
+	tcp_sock = TCP_connection_recv(local_port);
 
-    memset(&udp_to, 0, sizeof(udp_to));
-    udp_to.sin_family = AF_INET;
-    udp_to.sin_addr.s_addr  = inet_addr(remote_ip);
-    udp_to.sin_port = htons(remote_port);
-    
-    /* Transfer data */
-    printf ("read()\n");
-    while( (nread = read(tcp_sock, buf, BUFSIZE )) > 0) {
+	name_socket(&to, inet_addr(remote_ip), remote_port);
 
-        printf("sendto()\n");
-
-        printf("%s\n", buf);
-
-        nwrite = sendto( udp_sock, 
-                         buf, 
-                         nread, 
-                         0, 
-                         (struct sockaddr*)&udp_to, 
-                         (socklen_t )sizeof(udp_to)
-                       );
-
-        if(nwrite == -1){
-            printf ("sendto() failed, Err: %d \"%s\"\n",errno,strerror(errno));
-            exit(1);
-        }
-    }
-
-    if(nread == -1) {
-        printf ("read() failed, Err: %d \"%s\"\n",errno,strerror(errno));
-        exit(1);
-    }
+	while( (nread = read(tcp_sock, buf, BUFSIZE )) > 0){
+		printf ("read(): %d byte\n%s\n", nread,buf);
+		nwrite = sendto( udp_sock,
+						 buf,
+						 nread,
+						 0,
+						 (struct sockaddr*)&to,
+						 (socklen_t )sizeof(struct sockaddr_in)
+					   );
+		printf("sendto(): %d byte\n", nwrite);
+	}
 
     printf("File trasferito correttamente\n");
 
-    /* chiusura */
-    printf ("close()\n");
-    close(tcp_sock);
-    close(udp_sock);
-
-    return(0);
+	return(0);
 }

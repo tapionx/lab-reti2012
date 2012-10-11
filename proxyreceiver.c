@@ -1,8 +1,3 @@
-/* 
-    Proxy Receiver - riceve un flusso di dati UDP e lo trasmette in TCP
-    al receiver garantendo la correttezza della trasmissione
-*/
-
 #include <stdio.h>
 
 #include <unistd.h>
@@ -20,17 +15,17 @@
 
 #include "utils.h"
 
+#define BUFSIZE 50
 
 int main(int argc, char *argv[]){
 
-    #define BUFSIZE 1024
+	int udp_sock, tcp_sock, nread, nwrite, len, local_port, remote_port;
 
-    char buf[BUFSIZE];
-    char remote_ip[100];
-    int tcp_sock, udp_sock, nread, nwrite, len;
-    int local_port, remote_port;
+	struct sockaddr_in from;
 
-    struct sockaddr_in udp_from;
+	char buf[BUFSIZE];
+
+	char remote_ip[40];
 
     if(argc < 4){
         printf("usage: LOCAL_PORT REMOTE_IP REMOTE_PORT\n");
@@ -38,52 +33,35 @@ int main(int argc, char *argv[]){
     }
 
     local_port = atoi(argv[1]);
-    strncpy(remote_ip, argv[2], 99);
+    strncpy(remote_ip, argv[2], 39);
     remote_port = atoi(argv[3]);
 
-    udp_sock = UDP_sock(local_port);
+	udp_sock = UDP_sock(local_port);
 
-    tcp_sock = TCP_connection_send(remote_ip, remote_port);
+	tcp_sock = TCP_connection_send(remote_ip, remote_port);
 
-    memset(&udp_from, 0, sizeof(udp_from));
-    
-    /* Transfer data */
-    printf ("read()\n");
-    len = sizeof(udp_from);
-    while( (nread = recvfrom( udp_sock, 
-                              buf, 
-                              BUFSIZE, 
-                              0, 
-                              (struct sockaddr*) &udp_from,
-                              (socklen_t*)&len
-                            ) > 0)) {
-       
-        printf("write()\n");
+	name_socket(&from, htonl(INADDR_ANY), 0);
 
-        printf("%s\n", buf);
+	len = sizeof(struct sockaddr_in);
 
-        nwrite = write( tcp_sock, 
-                        buf, 
-                        nread 
-                       );
+	while( (nread = recvfrom( udp_sock,
+						  buf,
+						  BUFSIZE,
+						  0,
+						  (struct sockaddr*) &from,
+						  (socklen_t*)&len
+						)) > 0) {
 
-        if(nwrite == -1){
-            printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
-            exit(1);
-        }
-    }
+		printf("%s -> %d\n", buf, nread);
 
-    if(nread == -1) {
-        printf ("read() failed, Err: %d \"%s\"\n",errno,strerror(errno));
-        exit(1);
-    }
+		nwrite = write( tcp_sock,
+						buf,
+						nread
+					   );
 
-    printf("File trasferito correttamente\n");
+		printf("write(): %d byte\n", nwrite);
 
-    /* chiusura */
-    printf ("close()\n");
-    close(tcp_sock);
-    close(udp_sock);
+	}
 
-    return(0);
+	return(0);
 }
