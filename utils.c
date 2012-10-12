@@ -8,6 +8,8 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
+
+
 int get_socket(int type){
     /* SOCK_STREAM = TCP
      * SOCK_DGRAM  = UDP

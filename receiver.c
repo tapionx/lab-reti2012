@@ -4,7 +4,6 @@
     usage:
     receivefile.exe LOCAL_PORT FILE_NAME
 */
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +13,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
-
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -26,7 +24,7 @@
 int main(int argc, char *argv[])
 {
     #define BUFSIZE 1024
-    short int local_port_number;
+    int local_port_number;
     int socketfd;
     char buf[BUFSIZE];
 
@@ -37,13 +35,14 @@ int main(int argc, char *argv[])
     ssize_t nwrite = 0;
     ssize_t nread  = 0;
 
-    if(argc != 3) {
-        printf ("necessari 2 parametri: LOCAL_PORT FILE_NAME\n");
+    if(argc != 2) {
+        printf ("necessari 2 parametri: FILE_NAME\n");
         exit(1);
-    } else {
-        local_port_number = atoi(argv[1]);
-        strncpy(local_filename, argv[2], 99);
-    }
+	}
+
+    strncpy(local_filename, argv[1], 99);
+
+    local_port_number = 64000;
 
     /* Open the file to write */
     printf("open()\n");

@@ -1,21 +1,19 @@
 /*
-    sendfile.c - Trasferisce un file attraverso una connessione TCP
+    sender.c - Trasferisce un file attraverso una connessione TCP
 
     usage:
 
-    sendfile.exe IP_ADDRESS PORT FILEPATH
+    sender.exe IP_ADDRESS PORT FILEPATH
 */
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
-
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -26,7 +24,7 @@ int main(int argc, char *argv[])
     #define BUFSIZE 1024
     char string_remote_ip_address[100];
     char filename[100];
-    short int remote_port_number;
+    int remote_port_number;
     int socketfd;
 
     char buf[BUFSIZE];
@@ -36,13 +34,14 @@ int main(int argc, char *argv[])
 
     int to_transfer;
 
-    if(argc!=4) {
-        printf ("necessari 3 parametrii: REMOTE_IP REMOTE_PORT FILE\n");
+	remote_port_number = 59000;
+
+    if(argc!=3) {
+        printf ("necessari 3 parametrii: REMOTE_IP FILE\n");
         exit(1);
     } else {
         strncpy(string_remote_ip_address, argv[1], 99);
-        remote_port_number = atoi(argv[2]);
-        strncpy(filename, argv[3], 99);
+        strncpy(filename, argv[2], 99);
     }
 
     /* Open the file to be transfered in READ MODE */

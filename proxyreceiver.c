@@ -1,5 +1,4 @@
 #include <stdio.h>
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +8,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
-
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -17,24 +15,37 @@
 
 #define BUFSIZE 50
 
+#define MAXSIZE 65536
+
+#define HEADERSIZE 5
+
+#define BODYSIZE (MAXSIZE) - (HEADERSIZE)
+
+typedef struct packet{
+	uint32_t id;
+	char tipo;
+	char body[BODYSIZE];
+} packet;
+
 int main(int argc, char *argv[]){
 
 	int udp_sock, tcp_sock, nread, nwrite, len, local_port, remote_port;
 
 	struct sockaddr_in from;
 
-	char buf[BUFSIZE];
+	packet buf;
 
 	char remote_ip[40];
 
-    if(argc < 4){
-        printf("usage: LOCAL_PORT REMOTE_IP REMOTE_PORT\n");
+    if(argc < 2){
+        printf("usage: RECEIVER_IP\n");
         exit(1);
     }
 
-    local_port = atoi(argv[1]);
-    strncpy(remote_ip, argv[2], 39);
-    remote_port = atoi(argv[3]);
+	strncpy(remote_ip, argv[1], 39);
+
+    local_port = 63000;
+    remote_port = 64000;
 
 	udp_sock = UDP_sock(local_port);
 
@@ -45,21 +56,23 @@ int main(int argc, char *argv[]){
 	len = sizeof(struct sockaddr_in);
 
 	while( (nread = recvfrom( udp_sock,
-						  buf,
-						  BUFSIZE,
-						  0,
-						  (struct sockaddr*) &from,
-						  (socklen_t*)&len
-						)) > 0) {
+							  (char*)&buf,
+							  MAXSIZE,
+							  0,
+							  (struct sockaddr*) &from,
+							  (socklen_t*)&len
+							)) > 0) {
 
-		printf("%s -> %d\n", buf, nread);
+		printf("recvfrom(): %d byte\n", nread);
+
+		printf("%d %c\n", buf.id, buf.tipo);
 
 		nwrite = write( tcp_sock,
-						buf,
-						nread
+						buf.body,
+						nread/*nread-HEADERSIZE*/
 					   );
 
-		printf("write(): %d byte\n", nwrite);
+		printf("write(): %d byte\n\n", nwrite);
 
 	}
 
