@@ -21,7 +21,6 @@
 
 int main(int argc, char *argv[])
 {
-    #define BUFSIZE 1024
     char string_remote_ip_address[100];
     char filename[100];
     int remote_port_number;

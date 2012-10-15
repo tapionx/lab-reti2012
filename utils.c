@@ -8,7 +8,76 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
+#define BUFSIZE 50
 
+#define MAXSIZE 65000/*65536*/
+
+#define HEADERSIZE 5
+
+#define BODYSIZE (MAXSIZE) - (HEADERSIZE)
+
+typedef struct packet{
+	uint32_t id;
+	char tipo;
+	char body[BODYSIZE];
+} packet;
+
+
+typedef struct lista{
+    struct lista* next;
+    int value;
+} lista;
+
+/* -------- LISTE DINAMICHE con malloc() --------------*/
+
+
+void stampalista(lista* sentinella){
+    lista* cur = sentinella->next;
+    printf("[");
+    while(cur != NULL){
+        printf(" %d ",cur->value);
+        cur = cur->next;
+    }
+    printf("]\n");
+
+}
+
+void aggiungi( lista* sentinella, int valore ){
+    lista* new;
+    lista* cur = sentinella;
+    while(cur->next != NULL){
+        cur = cur->next;
+    }
+    new = malloc((size_t)sizeof(lista));
+    if(new == NULL){
+		printf("malloc() failed\n");
+		exit(1);
+	}
+    new->value = valore;
+    new->next = NULL;
+    cur->next = new;
+}
+
+void rimuovi(lista* sentinella, int valore){
+	lista* cur = sentinella;
+	while(cur->next->value != valore){
+		cur = sentinella->next;
+	}
+	cur->next = cur->next->next;
+	free(cur);
+
+}
+
+void pop(lista* sentinella){
+    lista* todel;
+    if(sentinella->next == NULL)
+        return;
+    todel = sentinella->next;
+    sentinella->next = todel->next;
+    free(todel);
+}
+
+/* -------------- SOCKET, funzioni ricorrenti -----------------*/
 
 int get_socket(int type){
     /* SOCK_STREAM = TCP

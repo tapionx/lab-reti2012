@@ -1,3 +1,7 @@
+/*
+ * proxyreceiver.c
+ */
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -13,19 +17,6 @@
 
 #include "utils.h"
 
-#define BUFSIZE 50
-
-#define MAXSIZE 65536
-
-#define HEADERSIZE 5
-
-#define BODYSIZE (MAXSIZE) - (HEADERSIZE)
-
-typedef struct packet{
-	uint32_t id;
-	char tipo;
-	char body[BODYSIZE];
-} packet;
 
 int main(int argc, char *argv[]){
 
@@ -69,11 +60,23 @@ int main(int argc, char *argv[]){
 
 		nwrite = write( tcp_sock,
 						buf.body,
-						nread/*nread-HEADERSIZE*/
+						nread-HEADERSIZE
 					   );
 
 		printf("write(): %d byte\n\n", nwrite);
 
+		if (nwrite == -1){
+			printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        	exit(1);
+   		}
+
+	}
+
+	if (nread == -1){
+		 printf ("recvfrom() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+         exit(1);
+	} else {
+		printf ("Trasferimento completato\n");
 	}
 
 	return(0);

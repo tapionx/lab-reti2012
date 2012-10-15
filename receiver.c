@@ -23,7 +23,6 @@
 
 int main(int argc, char *argv[])
 {
-    #define BUFSIZE 1024
     int local_port_number;
     int socketfd;
     char buf[BUFSIZE];

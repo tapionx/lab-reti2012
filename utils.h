@@ -1,3 +1,22 @@
+#define BUFSIZE 50
+
+#define MAXSIZE 65000/*65536*/
+
+#define HEADERSIZE 5
+
+#define BODYSIZE (MAXSIZE) - (HEADERSIZE)
+
+typedef struct packet{
+	uint32_t id;
+	char tipo;
+	char body[BODYSIZE];
+} packet;
+
+
+typedef struct lista{
+    struct lista* next;
+    int value;
+} lista;
 
 int get_socket(int type);
 
