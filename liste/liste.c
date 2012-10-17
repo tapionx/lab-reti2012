@@ -40,7 +40,8 @@ void stampalista(lista* sentinella){
     lista* cur = sentinella->next;
     printf("[");
     while(cur != NULL){
-        printf(" %d ",cur->p.id);
+        /*printf(" %d ",cur->p.id);*/
+        printf(" (%d|%c|%s) ", cur->p.id, cur->p.tipo, cur->p.body);
         cur = cur->next;
     }
     printf("]\n");
@@ -48,6 +49,7 @@ void stampalista(lista* sentinella){
 }
 
 void aggiungi( lista* sentinella, packet p ){
+	/* printf("[%d|%c|%s]\n", p.id, p.tipo, p.body); */
     lista* new;
     lista* cur = sentinella;
     while(cur->next != NULL){
@@ -58,9 +60,10 @@ void aggiungi( lista* sentinella, packet p ){
 		printf("malloc() failed\n");
 		exit(1);
 	}
-    memcpy(&new->p, &p, sizeof(packet));
+    memcpy(&(new->p), &p, sizeof(packet));
     new->next = NULL;
     cur->next = new;
+
 }
 
 void pop(lista* sentinella){
@@ -72,35 +75,43 @@ void pop(lista* sentinella){
     free(todel);
 }
 
-void rimuovi(lista* sentinella, int id){
+void rimuovi(lista* sentinella, uint32_t id){
 	lista* cur = sentinella;
+	lista* todel;
+	int i = 0;
+	printf("sentinella: %d\n\n", sentinella);
 	if(cur->next == NULL)
-
+		printf("lista vuota\n");
 	while(cur->next->p.id != id){
+		printf("cur: %d\nid: %d\nnext: %d\n\n", cur, cur->p.id, cur->next);
 		cur = cur->next;
+		i++;
 	}
+	printf("cur: %d\nid: %d\nnext: %d\n\n", cur, cur->p.id, cur->next);
+	todel = cur->next;
 	cur->next = cur->next->next;
-	free(cur->next);
+	printf("elimino %d\n", todel);
+	free(todel);
 }
 
 int main(){
 
     lista sentinella;
-
+	packet a;
     int scelta;
-    uint32_t valore;
-
+	a.tipo = 'B';
+	strcpy(a.body, "ciao");
 	sentinella.next = NULL;
 
-	packet
+	printf("sentinella: %d\n", sentinella);
 
     while(1){
         printf("\n\n >: ");
-        scanf("%d %d", &scelta, (int*)&valore);
+        scanf("%d %d", &scelta, (int*)&(a.id));
         switch(scelta){
 
             case 1:
-                aggiungi(&sentinella,valore);
+                aggiungi(&sentinella, a);
                 break;
 
             case 2:
@@ -108,7 +119,7 @@ int main(){
                 break;
 
 			case 3:
-				rimuovi(&sentinella, valore);
+				rimuovi(&sentinella, a.id);
 				break;
             default:
                 break;
