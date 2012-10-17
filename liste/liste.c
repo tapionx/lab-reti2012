@@ -78,20 +78,15 @@ void pop(lista* sentinella){
 void rimuovi(lista* sentinella, uint32_t id){
 	lista* cur = sentinella;
 	lista* todel;
-	int i = 0;
-	printf("sentinella: %d\n\n", sentinella);
-	if(cur->next == NULL)
-		printf("lista vuota\n");
-	while(cur->next->p.id != id){
-		printf("cur: %d\nid: %d\nnext: %d\n\n", cur, cur->p.id, cur->next);
+	while(cur->next != NULL){
+		if(cur->next->p.id == id){
+			todel = cur->next;
+			cur->next = cur->next->next;
+			free(todel);
+			return;
+		}
 		cur = cur->next;
-		i++;
 	}
-	printf("cur: %d\nid: %d\nnext: %d\n\n", cur, cur->p.id, cur->next);
-	todel = cur->next;
-	cur->next = cur->next->next;
-	printf("elimino %d\n", todel);
-	free(todel);
 }
 
 int main(){
