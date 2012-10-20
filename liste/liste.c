@@ -34,14 +34,16 @@ typedef struct packet{
 typedef struct lista{
     struct lista* next;
     packet p;
+    struct timeval sentime;
 } lista;
+
 
 void stampalista(lista* sentinella){
     lista* cur = sentinella->next;
     printf("[");
     while(cur != NULL){
         /*printf(" %d ",cur->p.id);*/
-        printf(" (%d|%c|%s) ", cur->p.id, cur->p.tipo, cur->p.body);
+        printf(" (%d|%c|%s - %d) ", cur->p.id, cur->p.tipo, cur->p.body, (int)cur->sentime.tv_sec);
         cur = cur->next;
     }
     printf("]\n");
@@ -60,19 +62,27 @@ void aggiungi( lista* sentinella, packet p ){
 		printf("malloc() failed\n");
 		exit(1);
 	}
+	if(gettimeofday(&(new->sentime), NULL)) {
+		printf ("gettimeofday() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        exit(1);
+	}
     memcpy(&(new->p), &p, sizeof(packet));
     new->next = NULL;
     cur->next = new;
 
 }
 
-void pop(lista* sentinella){
+lista pop(lista* sentinella){
     lista* todel;
+    lista ret;
+    memset(&ret, 0, sizeof(lista));
     if(sentinella->next == NULL)
-        return;
+        return ret;
     todel = sentinella->next;
     sentinella->next = todel->next;
+    memcpy(&ret, todel, sizeof(lista));
     free(todel);
+    return ret;
 }
 
 void rimuovi(lista* sentinella, uint32_t id){
@@ -88,17 +98,15 @@ void rimuovi(lista* sentinella, uint32_t id){
 		cur = cur->next;
 	}
 }
-
 int main(){
 
     lista sentinella;
 	packet a;
+	lista b;
     int scelta;
 	a.tipo = 'B';
 	strcpy(a.body, "ciao");
 	sentinella.next = NULL;
-
-	printf("sentinella: %d\n", sentinella);
 
     while(1){
         printf("\n\n >: ");
@@ -110,7 +118,8 @@ int main(){
                 break;
 
             case 2:
-                pop(&sentinella);
+                b = pop(&sentinella);
+                printf("rimosso (%d|%c|%s - %d)\n", b.p.id, b.p.tipo, b.p.body, (int)b.sentime.tv_sec);
                 break;
 
 			case 3:

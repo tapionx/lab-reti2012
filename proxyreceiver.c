@@ -22,10 +22,9 @@ int main(int argc, char *argv[]){
 
 	int udp_sock, tcp_sock, nread, nwrite, len, local_port, remote_port;
 
-	struct sockaddr_in from;
+	struct sockaddr_in from, to;
 
 	packet buf;
-
 	char remote_ip[40];
 
     if(argc < 2){
@@ -43,6 +42,8 @@ int main(int argc, char *argv[]){
 	tcp_sock = TCP_connection_send(remote_ip, remote_port);
 
 	name_socket(&from, htonl(INADDR_ANY), 0);
+
+	name_socket(&to, inet_addr("127.0.0.1"), 60000);
 
 	len = sizeof(struct sockaddr_in);
 
@@ -69,6 +70,29 @@ int main(int argc, char *argv[]){
 			printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
         	exit(1);
    		}
+
+		if(nwrite < nread-HEADERSIZE){
+			printf("TODO: sendall()\n");
+			exit(1);
+		}
+
+   		nwrite = sendto( udp_sock,
+						 (char*)&buf,
+						 nread,
+						 0,
+						 (struct sockaddr*)&to,
+						 (socklen_t )sizeof(struct sockaddr_in)
+					   );
+
+		if (nwrite == -1){
+			printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        	exit(1);
+   		}
+
+		if(nwrite < nread){
+			printf("TODO: sendall()\n");
+			exit(1);
+		}
 
 	}
 

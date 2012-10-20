@@ -22,27 +22,42 @@ typedef struct packet{
 	char body[BODYSIZE];
 } packet;
 
-
 typedef struct lista{
     struct lista* next;
-    int value;
+    packet p;
+    struct timeval sentime;
 } lista;
 
 /* -------- LISTE DINAMICHE con malloc() --------------*/
+
+
+typedef struct packet{
+	uint32_t id;
+	char tipo;
+	char body[BODYSIZE];
+} packet;
+
+typedef struct lista{
+    struct lista* next;
+    packet p;
+    struct timeval sentime;
+} lista;
 
 
 void stampalista(lista* sentinella){
     lista* cur = sentinella->next;
     printf("[");
     while(cur != NULL){
-        printf(" %d ",cur->value);
+        /*printf(" %d ",cur->p.id);*/
+        printf(" (%d|%c|%s - %d) ", cur->p.id, cur->p.tipo, cur->p.body, (int)cur->sentime.tv_sec);
         cur = cur->next;
     }
     printf("]\n");
 
 }
 
-void aggiungi( lista* sentinella, int valore ){
+void aggiungi( lista* sentinella, packet p ){
+	/* printf("[%d|%c|%s]\n", p.id, p.tipo, p.body); */
     lista* new;
     lista* cur = sentinella;
     while(cur->next != NULL){
@@ -53,30 +68,42 @@ void aggiungi( lista* sentinella, int valore ){
 		printf("malloc() failed\n");
 		exit(1);
 	}
-    new->value = valore;
+	if(gettimeofday(&(new->sentime), NULL)) {
+		printf ("gettimeofday() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        exit(1);
+	}
+    memcpy(&(new->p), &p, sizeof(packet));
     new->next = NULL;
     cur->next = new;
-}
-
-void rimuovi(lista* sentinella, int valore){
-	lista* cur = sentinella;
-	while(cur->next->value != valore){
-		cur = sentinella->next;
-	}
-	cur->next = cur->next->next;
-	free(cur);
 
 }
 
-void pop(lista* sentinella){
+lista pop(lista* sentinella){
     lista* todel;
+    lista ret;
+    memset(&ret, 0, sizeof(lista));
     if(sentinella->next == NULL)
-        return;
+        return ret;
     todel = sentinella->next;
     sentinella->next = todel->next;
+    memcpy(&ret, todel, sizeof(lista));
     free(todel);
+    return ret;
 }
 
+void rimuovi(lista* sentinella, uint32_t id){
+	lista* cur = sentinella;
+	lista* todel;
+	while(cur->next != NULL){
+		if(cur->next->p.id == id){
+			todel = cur->next;
+			cur->next = cur->next->next;
+			free(todel);
+			return;
+		}
+		cur = cur->next;
+	}
+}
 /* -------------- SOCKET, funzioni ricorrenti -----------------*/
 
 int get_socket(int type){

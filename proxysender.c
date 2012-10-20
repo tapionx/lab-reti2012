@@ -41,6 +41,7 @@ int main(int argc, char *argv[]){
 	struct sockaddr_in to, from;
 
 	packet buf;
+	lista temp;
 
 	char remote_ip[40];
 
@@ -52,9 +53,12 @@ int main(int argc, char *argv[]){
     int retsel;
     int fdmax;
 
+	struct timeval curtime;
+	time_t s_left;
+
     lista to_ack;
     to_ack.next = NULL;
-    to_ack.value = NULL;
+
 
     if(argc < 2){
         printf("usage: IP_RITARDATORE\n");
@@ -79,7 +83,6 @@ int main(int argc, char *argv[]){
 	name_socket(&to, inet_addr(remote_ip), 63000);
 
 	while(1){
-
         /* Watch stdin (fd 0) to see when it has input. */
         FD_ZERO(&rfds);
         FD_SET(tcp_sock, &rfds);
@@ -88,8 +91,38 @@ int main(int argc, char *argv[]){
 		FD_ZERO(&errfds);
 		FD_SET(tcp_sock, &errfds);
 
+		/* Decidiamo quanto tempo aspettare prima di risvegliarci
+		 * dalla select(). Se trovo pacchetti scaduti li mando di nuovo
+		 */
+
+		do{
+			if(to_ack->next == NULL){
+				s_left = 0;
+			} else {
+				if(gettimeofday(&(curtime), NULL)){
+					printf ("gettimeofday() failed, Err: %d \"%s\"\n",
+							errno,
+							strerror(errno)
+						   );
+					exit(1);
+				}
+
+				if( s_left = ((curtime.tv_sec) - (to_ack.next->sentime.tv_sec)) >= TIMEOUT){
+					temp = pop(&(to_ack);
+					nwrite = sendto( udp_sock,
+								 (char*)&buf,
+								 HEADERSIZE + nread,
+								 0,
+								 (struct sockaddr*)&to,
+								 (socklen_t )sizeof(struct sockaddr_in)
+							   );
+					aggiungi(&to_ack, temp.p);
+				}
+			}
+		} while(s_left >= TIMEOUT);
+
         /* Wait up to five seconds. */
-        timeout.tv_sec = 5;
+        timeout.tv_sec = s_left;
         timeout.tv_usec = 0;
 
         retsel = select(fdmax, &rfds, NULL, NULL, &timeout);
@@ -136,6 +169,11 @@ int main(int argc, char *argv[]){
 					exit(1);
 				}
 
+				if(nwrite < HEADERSIZE+nread){
+					printf("TODO: sendall()\n");
+					exit(1);
+				}
+
 				if (nread == -1){
 				 printf ("read() failed, Err: %d \"%s\"\n",
 						 errno,
@@ -144,7 +182,8 @@ int main(int argc, char *argv[]){
 				 exit(1);
 				}
 
-				aggiungi(&sentinella, buf.id);
+				aggiungi(&to_ack, buf);
+				stampalista(&to_ack);
 			}
 			if(FD_ISSET(udp_sock, &rfds)){
 
@@ -163,7 +202,10 @@ int main(int argc, char *argv[]){
 							 );
 					 exit(1);
 				}
-				printf("ACK\n%s\n", buf.body);
+				printf("%d byte: %d %c %s\n", nread, buf.id, buf.tipo, buf.body);
+				/*printf("%d ACK %d\n", nread, (uint32_t)buf.body);*/
+				rimuovi(&to_ack, buf.id);
+				stampalista(&to_ack);
 			}
 		} else {
 			printf("No data within five seconds.\n");
