@@ -14,6 +14,12 @@ typedef struct packet{
 	char body[BODYSIZE];
 } packet;
 
+typedef struct ICMP{
+	uint32_t id;
+	char tipo;
+	uint32_t idpck;
+}
+
 
 typedef struct lista{
     struct lista* next;
