@@ -18,7 +18,7 @@ typedef struct ICMP{
 	uint32_t id;
 	char tipo;
 	uint32_t idpck;
-}
+} ICMP;
 
 
 typedef struct lista{
