@@ -83,10 +83,10 @@ int main(int argc, char *argv[]){
 	name_socket(&to, inet_addr(remote_ip), 63000);
 
 	while(1){
-        /* Watch stdin (fd 0) to see when it has input. */
-        FD_ZERO(&rfds);
-        FD_SET(tcp_sock, &rfds);
-        FD_SET(udp_sock, &rfds);
+		/* Watch stdin (fd 0) to see when it has input. */
+		FD_ZERO(&rfds);
+		FD_SET(tcp_sock, &rfds);
+		FD_SET(udp_sock, &rfds);
 
 		FD_ZERO(&errfds);
 		FD_SET(tcp_sock, &errfds);
@@ -96,8 +96,9 @@ int main(int argc, char *argv[]){
 		 */
 
 		do{
-			if(to_ack->next == NULL){
-				s_left = 0;
+			memset(&temp, 0, sizeof(packet));
+			if(to_ack.next == NULL){
+				s_left = 999;  /* VA BENE COSI? */
 			} else {
 				if(gettimeofday(&(curtime), NULL)){
 					printf ("gettimeofday() failed, Err: %d \"%s\"\n",
@@ -107,24 +108,29 @@ int main(int argc, char *argv[]){
 					exit(1);
 				}
 
-				if( s_left = ((curtime.tv_sec) - (to_ack.next->sentime.tv_sec)) >= TIMEOUT){
-					temp = pop(&(to_ack);
+				if( (s_left = (TIMEOUT - ((curtime.tv_sec) - (to_ack.next->sentime.tv_sec)))) <= 0){
+					temp = pop(&(to_ack));
 					nwrite = sendto( udp_sock,
-								 (char*)&buf,
-								 HEADERSIZE + nread,
-								 0,
-								 (struct sockaddr*)&to,
-								 (socklen_t )sizeof(struct sockaddr_in)
-							   );
+													 (char*)&temp,
+													 MAXSIZE,
+													 0,
+													 (struct sockaddr*)&to,
+													 (socklen_t )sizeof(struct sockaddr_in)
+												 );
 					aggiungi(&to_ack, temp.p);
+					printf("rispedito %s\n", temp.p.body);
+					stampalista(&to_ack);
+					fflush(stdout);
 				}
 			}
-		} while(s_left >= TIMEOUT);
+		} while(s_left <= 0);
 
-        /* Wait up to five seconds. */
+		printf("%d\n", (int)s_left);
+
+		/* Wait up to five seconds. */
         timeout.tv_sec = s_left;
         timeout.tv_usec = 0;
-
+				printf("--SELECT()--\n");
         retsel = select(fdmax, &rfds, NULL, NULL, &timeout);
         /* Don't rely on the value of tv now! */
 
@@ -132,10 +138,9 @@ int main(int argc, char *argv[]){
            perror("select()");
         }
 		else if (retsel) {
-			printf("Data is available now.\n");
-
+			memset(&buf, 0, sizeof(packet));
 			if(FD_ISSET(tcp_sock, &rfds)){
-
+				printf("--> TCP\n");
 				nread = read(tcp_sock, (char*)buf.body, BODYSIZE );
 
 				/*printf("%s\n", buf.body);*/
@@ -150,8 +155,6 @@ int main(int argc, char *argv[]){
 				buf.id = progressive_id;
 				buf.tipo = 'B';
 
-				printf("%d\n", progressive_id);
-
 				nwrite = sendto( udp_sock,
 								 (char*)&buf,
 								 HEADERSIZE + nread,
@@ -159,7 +162,7 @@ int main(int argc, char *argv[]){
 								 (struct sockaddr*)&to,
 								 (socklen_t )sizeof(struct sockaddr_in)
 							   );
-				printf("sendto(): %d byte\n\n", nwrite);
+				/* printf("sendto(): %d byte\n\n", nwrite); */
 
 				if (nwrite == -1){
 					printf ("sendto() failed, Err: %d \"%s\"\n",
@@ -186,7 +189,6 @@ int main(int argc, char *argv[]){
 				stampalista(&to_ack);
 			}
 			if(FD_ISSET(udp_sock, &rfds)){
-
 				nread = recvfrom( udp_sock,
 								  (char*)&buf,
 								  MAXSIZE,
@@ -202,13 +204,14 @@ int main(int argc, char *argv[]){
 							 );
 					 exit(1);
 				}
-				printf("%d byte: %d %c %s\n", nread, buf.id, buf.tipo, buf.body);
-				/*printf("%d ACK %d\n", nread, (uint32_t)buf.body);*/
+				/*printf("%d byte: %d %c %s\n", nread, buf.id, buf.tipo, buf.body);*/
+				printf("--> ACK %d\n", buf.id);
 				rimuovi(&to_ack, buf.id);
 				stampalista(&to_ack);
 			}
 		} else {
-			printf("No data within five seconds.\n");
+			/*printf("--> Timeout\n");*/
+			fflush(stdout);
         }
 	}
 

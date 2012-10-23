@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <sys/time.h>
 
 #define BUFSIZE 50
 
@@ -30,26 +31,12 @@ typedef struct lista{
 
 /* -------- LISTE DINAMICHE con malloc() --------------*/
 
-
-typedef struct packet{
-	uint32_t id;
-	char tipo;
-	char body[BODYSIZE];
-} packet;
-
-typedef struct lista{
-    struct lista* next;
-    packet p;
-    struct timeval sentime;
-} lista;
-
-
 void stampalista(lista* sentinella){
     lista* cur = sentinella->next;
     printf("[");
     while(cur != NULL){
-        /*printf(" %d ",cur->p.id);*/
-        printf(" (%d|%c|%s - %d) ", cur->p.id, cur->p.tipo, cur->p.body, (int)cur->sentime.tv_sec);
+        printf(" (%d) ",cur->p.id);
+        /*printf(" (%d|%c|%s - %d) ", cur->p.id, cur->p.tipo, cur->p.body, (int)cur->sentime.tv_sec);*/
         cur = cur->next;
     }
     printf("]\n");
