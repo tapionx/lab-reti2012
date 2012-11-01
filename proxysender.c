@@ -34,7 +34,7 @@ int main(int argc, char *argv[]){
 		local_port_tcp,
 		local_port_udp;
 
-	/*int rit_port_1, rit_port_2, rit_port_3;*/
+	int rit_port_1; /*, rit_port_2, rit_port_3;*/
 
 	int len = sizeof(struct sockaddr_in*);
 
@@ -47,32 +47,49 @@ int main(int argc, char *argv[]){
 
 	uint32_t progressive_id = 0;
 
-    fd_set rfds;
-    fd_set errfds;
-    struct timeval timeout;
-    int retsel;
-    int fdmax;
+	fd_set rfds;
+	fd_set errfds;
+	struct timeval timeout;
+	int retsel;
+	int fdmax;
 
 	struct timeval curtime;
 	time_t s_left;
 
-    lista to_ack;
-    to_ack.next = NULL;
+  lista to_ack;
+  to_ack.next = NULL;
 
+	/* recupero parametri */
+	if(argc > 1)
+		strcpy(remote_ip, argv[1]);
+	else
+		strcpy(remote_ip,	"127.0.0.1");  /* MA PERCHE' 39 */
 
-    if(argc < 2){
-        printf("usage: IP_RITARDATORE\n");
-        exit(1);
-    }
+	if(argc > 2)
+		local_port_tcp = atoi(argv[2]);
+	else
+		local_port_tcp = 59000;
 
-    strncpy(remote_ip, argv[1], 39);
+	if(argc > 3)
+		local_port_udp = atoi(argv[3]);
+	else
+		local_port_udp = 60000;
 
-	local_port_tcp = 59000;
-	local_port_udp = 60000;
+	if(argc > 4)
+		rit_port_1 = atoi(argv[4]);
+	else
+		rit_port_1 = 61000;
 
-	/*rit_port_1 = 61000;*/
 	/*rit_port_2 = 61001;*/
 	/*rit_port_3 = 61002;*/
+
+	printf("remoteIP: %s localTCP: %d localUDP: %d rit1: %d\n",
+				 remote_ip,
+				 local_port_tcp,
+				 local_port_udp,
+				 rit_port_1
+				);
+	/********************************************************/
 
 	udp_sock = UDP_sock(local_port_udp);
 
@@ -80,7 +97,7 @@ int main(int argc, char *argv[]){
 
 	fdmax = (udp_sock > tcp_sock)? udp_sock+1 : tcp_sock+1;
 
-	name_socket(&to, inet_addr(remote_ip), 63000);
+	name_socket(&to, inet_addr(remote_ip), rit_port_1);
 
 	while(1){
 		/* Watch stdin (fd 0) to see when it has input. */
@@ -101,35 +118,48 @@ int main(int argc, char *argv[]){
 				s_left = 999;  /* VA BENE COSI? */
 			} else {
 				if(gettimeofday(&(curtime), NULL)){
-					printf ("gettimeofday() failed, Err: %d \"%s\"\n",
-							errno,
-							strerror(errno)
-						   );
+					printf("gettimeofday() failed, Err: %d \"%s\"\n",
+								 errno,
+								 strerror(errno)
+								);
 					exit(1);
 				}
-
 				if( (s_left = (TIMEOUT - ((curtime.tv_sec) - (to_ack.next->sentime.tv_sec)))) <= 0){
 					temp = pop(&(to_ack));
+					temp.p.id = htonl(temp.p.id);
 					nwrite = sendto( udp_sock,
-													 (char*)&temp,
+													 (char*)&temp.p,
 													 MAXSIZE,
 													 0,
 													 (struct sockaddr*)&to,
 													 (socklen_t )sizeof(struct sockaddr_in)
 												 );
+					if (nwrite == -1){
+					 printf ("read() failed, Err: %d \"%s\"\n",
+							 errno,
+							 strerror(errno)
+							 );
+					 exit(1);
+					}
+					temp.p.id = ntohl(temp.p.id);
 					aggiungi(&to_ack, temp.p);
-					printf("rispedito %s\n", temp.p.body);
+					printf("%d %d\n", nwrite, MAXSIZE);
+					printf("rispedito %d byte: %d %c %s\n", nwrite, temp.p.id, temp.p.tipo, temp.p.body);
+					/*printf("rispedito %s\n", temp.p.body);*/
 					stampalista(&to_ack);
 					fflush(stdout);
 				}
 			}
 		} while(s_left <= 0);
 
-		printf("%d\n", (int)s_left);
+		/*printf("timeout: %d\n", (int)s_left);*/
 
 		/* Wait up to five seconds. */
         timeout.tv_sec = s_left;
         timeout.tv_usec = 0;
+        /*
+         * SELECT -------------------------------------------------
+         */
 				printf("--SELECT()--\n");
         retsel = select(fdmax, &rfds, NULL, NULL, &timeout);
         /* Don't rely on the value of tv now! */
@@ -140,6 +170,9 @@ int main(int argc, char *argv[]){
 		else if (retsel) {
 			memset(&buf, 0, sizeof(packet));
 			if(FD_ISSET(tcp_sock, &rfds)){
+				/*
+				 * TCP ----------------------------------------------
+				 */
 				printf("--> TCP\n");
 				nread = read(tcp_sock, (char*)buf.body, BODYSIZE );
 
@@ -152,7 +185,7 @@ int main(int argc, char *argv[]){
 				}
 
 				progressive_id++;
-				buf.id = progressive_id;
+				buf.id = htonl(progressive_id);
 				buf.tipo = 'B';
 
 				nwrite = sendto( udp_sock,
@@ -184,11 +217,14 @@ int main(int argc, char *argv[]){
 						 );
 				 exit(1);
 				}
-
+				buf.id = ntohl(buf.id);
 				aggiungi(&to_ack, buf);
 				stampalista(&to_ack);
 			}
 			if(FD_ISSET(udp_sock, &rfds)){
+				/*
+				 * UDP -----------------------------------------
+				 */
 				nread = recvfrom( udp_sock,
 								  (char*)&buf,
 								  MAXSIZE,
@@ -204,12 +240,23 @@ int main(int argc, char *argv[]){
 							 );
 					 exit(1);
 				}
-				/*printf("%d byte: %d %c %s\n", nread, buf.id, buf.tipo, buf.body);*/
-				printf("--> ACK %d\n", buf.id);
-				rimuovi(&to_ack, buf.id);
-				stampalista(&to_ack);
+				/* se ho ricevuto un ACK */
+				printf("--> UDP %d byte: %d %c %s\n", nread, ntohl(buf.id), buf.tipo, buf.body);
+				if(buf.tipo == 'B'){
+					buf.id = ntohl(buf.id);
+					printf("--> ACK %d\n", buf.id);
+					temp = rimuovi(&to_ack, buf.id);
+					stampalista(&to_ack);
+				}
+				/* se ho ricevuto un ICMP */
+				if(buf.tipo == 'I'){
+					temp = rimuovi
+				}
 			}
 		} else {
+			/*
+			 * TIMEOUT -------------------------
+			 */
 			/*printf("--> Timeout\n");*/
 			fflush(stdout);
         }

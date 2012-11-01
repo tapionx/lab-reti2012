@@ -78,18 +78,22 @@ lista pop(lista* sentinella){
     return ret;
 }
 
-void rimuovi(lista* sentinella, uint32_t id){
+lista rimuovi(lista* sentinella, uint32_t id){
 	lista* cur = sentinella;
 	lista* todel;
+	lista ret;
 	while(cur->next != NULL){
 		if(cur->next->p.id == id){
 			todel = cur->next;
 			cur->next = cur->next->next;
+			memcpy(&ret, todel, sizeof(lista));
 			free(todel);
-			return;
+			return ret;
 		}
 		cur = cur->next;
 	}
+	printf("rimuovi(): pacchetto non trovato\n");
+	exit(1);
 }
 /* -------------- SOCKET, funzioni ricorrenti -----------------*/
 

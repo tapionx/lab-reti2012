@@ -28,15 +28,29 @@ int main(int argc, char *argv[]){
 	packet buf;
 	char remote_ip[40];
 
-    if(argc < 2){
-        printf("usage: RECEIVER_IP\n");
-        exit(1);
-    }
+	/* recupero parametri */
+	if(argc > 1)
+		strcpy(remote_ip, argv[1]);
+	else
+		strcpy(remote_ip, "127.0.0.1");
 
-	strncpy(remote_ip, argv[1], 39);
+	if(argc > 2)
+		local_port = atoi(argv[2]);
+	else
+		local_port = 63000;
 
-    local_port = 63000;
-    remote_port = 64000;
+	if(argc > 3)
+		remote_port = atoi(argv[3]);
+	else
+		remote_port = 64000;
+
+	printf("remoteIP: %s localPORT: %d remotePORT: %d\n",
+    	   remote_ip,
+		   local_port,
+		   remote_port
+		  );
+
+	/* inizializzo i socket */
 
 	udp_sock = UDP_sock(local_port);
 
@@ -44,7 +58,8 @@ int main(int argc, char *argv[]){
 
 	name_socket(&from, htonl(INADDR_ANY), 0);
 
-	name_socket(&to, inet_addr("127.0.0.1"), 60000);
+	/* QUESTO VA FATTO DINAMICAMENTE !! */
+	name_socket(&to, inet_addr("127.0.0.1"), 62000);
 
 	len = sizeof(struct sockaddr_in);
 
@@ -58,7 +73,7 @@ int main(int argc, char *argv[]){
 
 		printf("recvfrom(): %d byte\n", nread);
 
-		printf("%d %c\n", buf.id, buf.tipo);
+		printf("%d %c\n", ntohl(buf.id), buf.tipo);
 
 		nwrite = write( tcp_sock,
 						buf.body,

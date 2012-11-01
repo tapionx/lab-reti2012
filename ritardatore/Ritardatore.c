@@ -153,8 +153,8 @@ int get_local_port(int socketfd)
 int check_port(uint16_t port_number_local)
 {
 	int i;
-	
-	for(i=0;i<MAXNUMCONNECTIONS;i++)	
+
+	for(i=0;i<MAXNUMCONNECTIONS;i++)
 	{
 		if( (coppiafd[i].attivo==1)  &&
 			(
@@ -181,7 +181,7 @@ void aggiungi_in_ordine(ELEMENTOLISTA *p)
 {
 	ELEMENTOLISTA* *pp=&root;
 
-	if(p==NULL) 
+	if(p==NULL)
 		return;
 	while(*pp!=NULL) {
 		if( minore( &(p->timeout) , &( (*pp)->timeout) ) ) {
@@ -223,7 +223,7 @@ void close_coppia(int i)
 	if(coppiafd[i].attivo==1)
 	{
 		coppiafd[i].attivo=0;
-		if(coppiafd[i].fd_latosender>=0) 
+		if(coppiafd[i].fd_latosender>=0)
 		{
 			FD_CLR(coppiafd[i].fd_latosender,&all);
 			close(coppiafd[i].fd_latosender);
@@ -244,12 +244,12 @@ int cambia_stato_canale_se_scaduto_burst(int i /* indice canale */ , double perc
 	struct timeval now;
 
 	if( percentuale_errore <= ((double)0.0) ) /* non cambio stato */
-		return(0);	
+		return(0);
 
 	gettimeofday(&now,NULL);
 
 	/* controllo se e' necessario cambiare stato di spedizione */
-	if( minoreouguale( &(coppiafd[i].ist_prossimo_cambio_stato), &now ) ) {  
+	if( minoreouguale( &(coppiafd[i].ist_prossimo_cambio_stato), &now ) ) {
 		/* scaduto il burst, cambio stato */
 		int msec_nuovo_stato;
 
@@ -267,7 +267,7 @@ int cambia_stato_canale_se_scaduto_burst(int i /* indice canale */ , double perc
 		else { /* coppiafd[i].stato_trasmissione==0 */
 			coppiafd[i].stato_trasmissione=1; /* spedire da adesso */
 			/* sequenze di spediti tra 3 sec e 10 sec */
-			msec_nuovo_stato=random()%10000; 
+			msec_nuovo_stato=random()%10000;
 			if(msec_nuovo_stato<3000) msec_nuovo_stato=3000;
 			coppiafd[i].ist_prossimo_cambio_stato=now;
 			coppiafd[i].ist_prossimo_cambio_stato.tv_sec  += (msec_nuovo_stato/1000);
@@ -275,7 +275,7 @@ int cambia_stato_canale_se_scaduto_burst(int i /* indice canale */ , double perc
 			normalizza( &(coppiafd[i].ist_prossimo_cambio_stato) );
 
 			printf("cambiato stato del canale %s %d in TRASMISSIONE %s\n", VERDE, i, BIANCO );
-		}	
+		}
 		/* cambiato stato canale */
 		return(1);
 	}
@@ -287,20 +287,20 @@ int cambia_stato_canale_se_scaduto_burst(int i /* indice canale */ , double perc
 		else
 			printf("NON SCADUTO TIMEOUT RIMANE stato del canale %d in BURST\n", i);
 		*/
-		return(0);	
+		return(0);
 	}
 }
 
 
-/* 
+/*
 	restituisce 0 se ricevo niente
 	restituisce 1 se ricevo ma scarto senza mandare messaggio ICMP
 	restituisce 2 se ricevo ma scarto mandando piu' tardi al mittente un messaggio ICMP
 	restituisce 3 se ricevo e inoltro verso la destinazione
 */
 int ricevo_inserisco(int i, uint32_t *pidmsg, uint32_t fd_latoricevere, uint32_t fd_latospedire,
-					 uint16_t local_port_number_latospedire, uint16_t local_port_number_latoricevere, 
-					 uint16_t remote_port_number_lato_spedire, uint16_t remote_port_number_latoricevere, 
+					 uint16_t local_port_number_latospedire, uint16_t local_port_number_latoricevere,
+					 uint16_t remote_port_number_lato_spedire, uint16_t remote_port_number_latoricevere,
 					 char *remote_IP_string_latoricevere, char *remote_IP_string_latospedire )
 {
 	/* leggo, calcolo ritardo e metto in lista da spedire */
@@ -336,6 +336,7 @@ int ricevo_inserisco(int i, uint32_t *pidmsg, uint32_t fd_latoricevere, uint32_t
 			return(0);
 		}
 		else if (     ((COMMON_HEADER*)buf)->tipo != 'B'   ) {
+			printf("tipo --> %s\n", buf);/*((COMMON_HEADER*)buf)->tipo);*/
 			fprintf(stderr,"ricevuto  pkt NON DI TIPO BODY - scarto\n" );
 			return(0);
 		}
@@ -350,8 +351,8 @@ int ricevo_inserisco(int i, uint32_t *pidmsg, uint32_t fd_latoricevere, uint32_t
 
 		/* modifica */
 		if( PERCENTUALE_ERRORE > 0 ) {
-			if(casuale<=2  /*PERCENTUALE_ERRORE*/) 
-			{		
+			if(casuale<=2  /*PERCENTUALE_ERRORE*/)
+			{
 				/* scarto almeno il 2+3% dei pkt indipendentemente dai burst */
 				/* SCARTO SENZA MANDARE UN MESSAGGIO ICMP */
 				numscartatiSENZAICMP++;
@@ -359,8 +360,8 @@ int ricevo_inserisco(int i, uint32_t *pidmsg, uint32_t fd_latoricevere, uint32_t
 				return(1);
 			}
 		}
-		
-		/* 	scarto ulteriormente 
+
+		/* 	scarto ulteriormente
 			burst di perdite di durata tra 100 ms e 1000 ms
 			intervallati da sequenze di spediti tra 1 sec e 12 sec
 		*/
@@ -399,9 +400,9 @@ int ricevo_inserisco(int i, uint32_t *pidmsg, uint32_t fd_latoricevere, uint32_t
 				/* inserisco il tipo 'I? e l'identificatore del messaggio ricevuto e scartato */
 				local_counter_network_order=htonl(local_counter);
 				local_counter++;
-				memcpy( (char*)&( ((ICMP*)(p->buf))->id_network_order), (char*)&local_counter_network_order, sizeof(uint32_t) ); 
+				memcpy( (char*)&( ((ICMP*)(p->buf))->id_network_order), (char*)&local_counter_network_order, sizeof(uint32_t) );
 				((ICMP*)(p->buf))->tipo='I';
-				memcpy( (char*)&( ((ICMP*)(p->buf))->packet_lost_id_network_order) , (char*)pidmsg, sizeof(uint32_t) ); 
+				memcpy( (char*)&( ((ICMP*)(p->buf))->packet_lost_id_network_order) , (char*)pidmsg, sizeof(uint32_t) );
 
 
 				/* calcolo il ritardo da aggiungere e calcolo il timeout */
@@ -495,7 +496,7 @@ void creazione_nuova_coppia_porte(int sec_prossimo_cambio_stato_trasmissione)
 		{
 			struct timeval now;
 
-			ris=UDP_setup_socket_bound( &(coppiafd[i].fd_latosender), 
+			ris=UDP_setup_socket_bound( &(coppiafd[i].fd_latosender),
 										first_local_port_number_sender_side+counter_localport_sender_side, 65535, 65535 );
 			if (!ris)
 			{	printf ("UDP_setup_socket_bound() failed\n");
@@ -543,7 +544,7 @@ void stampa_coppie_porte(void)
 		if(coppiafd[i].attivo==1)
 		{
 			fprintf(stderr,"coppia %d: latomobile fd %lu port %d - latofixed fd %lu port %d \n",
-					i, coppiafd[i].fd_latosender, get_local_port(coppiafd[i].fd_latosender), 
+					i, coppiafd[i].fd_latosender, get_local_port(coppiafd[i].fd_latosender),
 					coppiafd[i].fd_latoreceiver, get_local_port(coppiafd[i].fd_latoreceiver) );
 		}
 	}
@@ -602,7 +603,7 @@ int send_udp(uint32_t socketfd, char *buf, uint32_t len, uint16_t port_number_lo
 
 
 #define PARAMETRIDEFAULT "./EmulatoreRete.exe 127.0.0.1 60000 61000 62000 127.0.0.1 63000 15 -1 1"
-void usage(void) 
+void usage(void)
 {  printf ("usage: ./EmulatoreRete.exe SENDERIP SENDERPORT FIRSTSENDERSIDEPORT FIRSTRECEIVERSIDEPORT RECEIVERIP RECEIVERPORT"
 		   " PACKETLOSSPERC SEME  DEBUG{y,n}\n"
 				"esempio: "  PARAMETRIDEFAULT "\n" );
@@ -616,7 +617,7 @@ int main(int argc, char *argv[])
 	char debug='n';
 	int i, ris;
 
-	if(argc==1) { 
+	if(argc==1) {
 		printf ("uso i 9 parametri di default \n%s \n", PARAMETRIDEFAULT);
 		strcpy( remote_sender_IP_string, "127.0.0.1" );
 		remote_port_number_sender = 60000;
@@ -707,7 +708,7 @@ int main(int argc, char *argv[])
 			if(root->cmd==CMD_SEND) {
 				if( check_port(root->port_number_local) ) {
 					ris=send_udp(root->fd,root->buf,root->len,root->port_number_local, root->IP_dest ,root->port_number_dest);
-					fprintf(stderr,"pkt id %lu tipo %c sent %d from %d to %d\n", 
+					fprintf(stderr,"pkt id %lu tipo %c sent %d from %d to %d\n",
 													ntohl(((COMMON_HEADER*)(root->buf))->id_network_order),
 													((COMMON_HEADER*)(root->buf))->tipo,
 													ris, root->port_number_local, root->port_number_dest );
@@ -718,7 +719,7 @@ int main(int argc, char *argv[])
 		}
 
 		/* gestione burst nei canali */
-		for(i=0;i<MAXNUMCONNECTIONS;i++)	
+		for(i=0;i<MAXNUMCONNECTIONS;i++)
 		{
 			if(coppiafd[i].attivo==1)
 			{
@@ -728,7 +729,7 @@ int main(int argc, char *argv[])
 		}
 
 		/* gestione pacchetti in arrivo */
-		for(i=0;i<MAXNUMCONNECTIONS;i++)	
+		for(i=0;i<MAXNUMCONNECTIONS;i++)
 		{
 			uint32_t idmsg;
 			if(coppiafd[i].attivo==1)
@@ -740,26 +741,26 @@ int main(int argc, char *argv[])
 					#endif
 					/* leggo, calcolo ritardo e metto in lista da spedire verso il fixed */
 					ris=ricevo_inserisco(	i, &idmsg, coppiafd[i].fd_latosender, coppiafd[i].fd_latoreceiver,
-											coppiafd[i].port_number_latoreceiver, coppiafd[i].port_number_latosender, 
+											coppiafd[i].port_number_latoreceiver, coppiafd[i].port_number_latosender,
 											remote_port_number_receiver, remote_port_number_sender,
 											remote_sender_IP_string, remote_receiver_IP_string );
-					if(ris==0)		{ 
+					if(ris==0)		{
 						P("NULLAsender");  /* non ricevuto niente, o errore sul socket */
-						; 
+						;
 					}
-					else if(ris==1)	{ 
+					else if(ris==1)	{
 						#ifdef VICDEBUG
 						fprintf(stderr,"SCARTO idmsg %u da latosender SENZA spedire msg ICMP al mittente\n", idmsg);
 						#endif
 					}
-					else if(ris==2)	{ 
+					else if(ris==2)	{
 						#ifdef VICDEBUG
 						fprintf(stderr,"SCARTO idmsg %u da latosender, piu' tardi spediro' msg ICMP al mittente\n", idmsg);
 						#endif
 					}
-					else if(ris==3)	{ 
+					else if(ris==3)	{
 						#ifdef VICDEBUG
-						P("SPEDISCOsender"); 
+						P("SPEDISCOsender");
 						#endif
 					}
 					else { P("CHEE'sender "); ;}
@@ -774,27 +775,27 @@ int main(int argc, char *argv[])
 					fprintf(stderr,"leggo da lato receiver\n");
 					#endif
 					/* leggo, calcolo ritardo e metto in lista da spedire */
-					ris=ricevo_inserisco(	i, &idmsg, coppiafd[i].fd_latoreceiver, coppiafd[i].fd_latosender, 
-											coppiafd[i].port_number_latosender, coppiafd[i].port_number_latoreceiver, 
-											remote_port_number_sender, remote_port_number_receiver, 
+					ris=ricevo_inserisco(	i, &idmsg, coppiafd[i].fd_latoreceiver, coppiafd[i].fd_latosender,
+											coppiafd[i].port_number_latosender, coppiafd[i].port_number_latoreceiver,
+											remote_port_number_sender, remote_port_number_receiver,
 											remote_receiver_IP_string, remote_sender_IP_string );
-					if(ris==0)		{ 
+					if(ris==0)		{
 						P("NULLAreceiver");  /* non ricevuto niente, o errore sul socket */
-						; 
+						;
 					}
-					else if(ris==1)	{ 
+					else if(ris==1)	{
 						#ifdef VICDEBUG
 						fprintf(stderr,"SCARTO idmsg %u da latoreceiver SENZA spedire msg ICMP al mittente\n", idmsg);
 						#endif
 					}
-					else if(ris==2)	{ 
+					else if(ris==2)	{
 						#ifdef VICDEBUG
 						fprintf(stderr,"SCARTO idmsg %u da latoreceiver, piu' tardi spediro' msg ICMP al mittente\n", idmsg);
 						#endif
 					}
-					else if(ris==3)	{ 
+					else if(ris==3)	{
 						#ifdef VICDEBUG
-						P("SPEDISCOreceiver"); 
+						P("SPEDISCOreceiver");
 						#endif
 					}
 					else { P("CHEE'receiver "); ;}

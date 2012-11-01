@@ -18,7 +18,7 @@ typedef struct ICMP{
 	uint32_t id;
 	char tipo;
 	uint32_t idpck;
-}
+} ICMP;
 
 
 typedef struct lista{
@@ -30,7 +30,7 @@ typedef struct lista{
 void stampalista(lista* sentinella);
 void aggiungi( lista* sentinella, packet p );
 lista pop(lista* sentinella);
-void rimuovi(lista* sentinella, uint32_t id);
+lista rimuovi(lista* sentinella, uint32_t id);
 
 
 int get_socket(int type);
