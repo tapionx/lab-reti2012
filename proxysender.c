@@ -154,7 +154,7 @@ int main(int argc, char *argv[]){
 
 		/*printf("timeout: %d\n", (int)s_left);*/
 
-		/* Wait up to five seconds. */
+		/* Wait time left of the pck */
         timeout.tv_sec = s_left;
         timeout.tv_usec = 0;
         /*
@@ -169,6 +169,7 @@ int main(int argc, char *argv[]){
         }
 		else if (retsel) {
 			memset(&buf, 0, sizeof(packet));
+			/*mi ha svegliato un socktcp?*/
 			if(FD_ISSET(tcp_sock, &rfds)){
 				/*
 				 * TCP ----------------------------------------------
@@ -183,7 +184,7 @@ int main(int argc, char *argv[]){
 					/* FAI QUALCOSA */
 					exit(1);
 				}
-
+				/*Creo l'header del pacchetto e invio il pacchetto come UDP*/
 				progressive_id++;
 				buf.id = htonl(progressive_id);
 				buf.tipo = 'B';
@@ -221,6 +222,7 @@ int main(int argc, char *argv[]){
 				aggiungi(&to_ack, buf);
 				stampalista(&to_ack);
 			}
+			/*mi ha svegliato un sockudp?*/
 			if(FD_ISSET(udp_sock, &rfds)){
 				/*
 				 * UDP -----------------------------------------
