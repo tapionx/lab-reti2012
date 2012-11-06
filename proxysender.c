@@ -27,14 +27,14 @@
 
 int main(int argc, char *argv[]){
 
-	int udp_sock,
-	tcp_sock,
-	nread,
-	nwrite,
-	local_port_tcp,
-	local_port_udp,
-	rit_port_1;
-	/*, rit_port_2, rit_port_3;*/
+	int udp_sock = 0;
+	int tcp_sock = 0;
+	int nread = 0;
+	int nwrite = 0;
+	int local_port_tcp = 0;
+	int local_port_udp = 0;
+	int rit_port[3];
+	int rit_turno = 0;
 
 	int len = sizeof(struct sockaddr_in*);
 
@@ -77,18 +77,27 @@ int main(int argc, char *argv[]){
 		local_port_udp = 60000;
 
 	if(argc > 4)
-		rit_port_1 = atoi(argv[4]);
+		rit_port[0] = atoi(argv[4]);
 	else
-		rit_port_1 = 61000;
+		rit_port[0] = 61000;
 
-	/*rit_port_2 = 61001;*/
-	/*rit_port_3 = 61002;*/
+	if(argc > 5)
+		rit_port[1] = atoi(argv[5]);
+	else
+		rit_port[1] = 61001;
 
-	printf("remoteIP: %s localTCP: %d localUDP: %d rit1: %d\n",
+	if(argc > 6)
+		rit_port[2] = atoi(argv[6]);
+	else
+		rit_port[2] = 61002;
+
+	printf("remoteIP: %s localTCP: %d localUDP: %d rit1: %d rit2: %d rit3: %d\n",
 				 remote_ip,
 				 local_port_tcp,
 				 local_port_udp,
-				 rit_port_1
+				 rit_port[0],
+				 rit_port[1],
+				 rit_port[2]
 				);
 	/********************************************************/
 
@@ -98,9 +107,12 @@ int main(int argc, char *argv[]){
 
 	fdmax = (udp_sock > tcp_sock)? udp_sock+1 : tcp_sock+1;
 
-	name_socket(&to, inet_addr(remote_ip), rit_port_1);
-
 	while(1){
+
+		/* incrementiamo il turno delle porte del ritardatore */
+		rit_turno = (rit_turno + 1) % 3;
+		name_socket(&to, inet_addr(remote_ip), rit_port[rit_turno]);
+
 		/* Watch stdin (fd 0) to see when it has input. */
 		FD_ZERO(&rfds);
 		FD_SET(tcp_sock, &rfds);
@@ -142,7 +154,7 @@ int main(int argc, char *argv[]){
          * SELECT -------------------------------------------------
          */
 				printf("--SELECT()--\n");
-				printf("aspetto: %d %d\n", s_left, ms_left);
+				printf("aspetto: %d %d\n", (int)s_left, (int)ms_left);
         retsel = select(fdmax, &rfds, NULL, NULL, &timeout);
         /* Don't rely on the value of tv now! */
 
@@ -205,7 +217,6 @@ int main(int argc, char *argv[]){
 				aggiungi(&to_ack, buf);
 				stampalista(&to_ack);
 			}
-			/*mi ha svegliato un sockudp?*/
 			if(FD_ISSET(udp_sock, &rfds)){
 				/*
 				 * UDP -----------------------------------------
