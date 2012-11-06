@@ -71,16 +71,22 @@ int main(int argc, char *argv[]){
 							  (socklen_t*)&len
 							)) > 0) {
 
-		printf("recvfrom(): %d byte\n", nread);
+		/* CONTROLLARE ERRORI! */
 
-		printf("%d %c\n", ntohl(buf.id), buf.tipo);
+		/* printf("recvfrom(): %d byte\n", nread); */
 
-		nwrite = write( tcp_sock,
-						buf.body,
-						nread-HEADERSIZE
-					   );
+		/* printf("%d %c\n", ntohl(buf.id), buf.tipo); */
 
-		printf("write(): %d byte\n\n", nwrite);
+		if(buf.tipo == 'B'){
+
+			nwrite = write( tcp_sock,
+							buf.body,
+							nread-HEADERSIZE
+						   );
+		} else {
+			printf("ICMP! %d\n", ntohl(buf.id) );
+		}
+		/* printf("write(): %d byte\n\n", nwrite); */
 
 		if (nwrite == -1){
 			printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
