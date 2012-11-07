@@ -237,7 +237,7 @@ int main(int argc, char *argv[]){
 					 exit(1);
 				}
 				/* se ho ricevuto un ACK */
-				printf("--> UDP %d byte: %d %c %s\n", nread, ntohl(buf.id), buf.tipo, buf.body);
+				printf("--> UDP %d byte: %d %c \n", nread, ntohl(buf.id), buf.tipo);
 				if(buf.tipo == 'B'){
 					buf.id = ntohl(buf.id);
 					printf("--> ACK %d\n", buf.id);
@@ -265,7 +265,7 @@ int main(int argc, char *argv[]){
 					temp.p.id = ntohl(temp.p.id);
 					aggiungi(&to_ack, temp.p);
 					printf("%d %d\n", nwrite, MAXSIZE);
-					printf("rispedito %d byte: %d %c %s\n", nwrite, temp.p.id, temp.p.tipo, temp.p.body);
+					printf("rispedito %d byte: %d %c \n", nwrite, temp.p.id, temp.p.tipo);
 					/*printf("rispedito %s\n", temp.p.body);*/
 					stampalista(&to_ack);
 					fflush(stdout);

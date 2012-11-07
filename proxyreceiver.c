@@ -58,9 +58,6 @@ int main(int argc, char *argv[]){
 
 	name_socket(&from, htonl(INADDR_ANY), 0);
 
-	/* QUESTO VA FATTO DINAMICAMENTE !! */
-	name_socket(&to, inet_addr("127.0.0.1"), 62000);
-
 	len = sizeof(struct sockaddr_in);
 
 	while( (nread = recvfrom( udp_sock,
@@ -72,6 +69,8 @@ int main(int argc, char *argv[]){
 							)) > 0) {
 
 		/* CONTROLLARE ERRORI! */
+		if(nread == -1)
+			printf("ERRORE\n");
 
 		/* printf("recvfrom(): %d byte\n", nread); */
 
@@ -83,7 +82,8 @@ int main(int argc, char *argv[]){
 							buf.body,
 							nread-HEADERSIZE
 						   );
-		} else {
+		}
+		if(buf.tipo == 'I') {
 			printf("ICMP! %d\n", ntohl(buf.id) );
 		}
 		/* printf("write(): %d byte\n\n", nwrite); */
@@ -98,6 +98,14 @@ int main(int argc, char *argv[]){
 			exit(1);
 		}
 
+		/* Imposto la destinazione dell'ACK
+		 * inviandolo sullo stesso canale dal quale è arrivato
+		 * l'udp perchè probabilmente non è in BURST
+		 */
+
+		/*printf("%d %d\n", from.sin_addr.s_addr, from.sin_port);*/
+		name_socket(&to, from.sin_addr.s_addr, ntohs(from.sin_port));
+
    		nwrite = sendto( udp_sock,
 						 (char*)&buf,
 						 nread,
@@ -107,7 +115,7 @@ int main(int argc, char *argv[]){
 					   );
 
 		if (nwrite == -1){
-			printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+			printf ("sendto() failed, Err: %d \"%s\"\n",errno,strerror(errno));
         	exit(1);
    		}
 
@@ -115,9 +123,7 @@ int main(int argc, char *argv[]){
 			printf("TODO: sendall()\n");
 			exit(1);
 		}
-
 	}
-
 	if (nread == -1){
 		 printf ("recvfrom() failed, Err: %d \"%s\"\n",errno,strerror(errno));
          exit(1);

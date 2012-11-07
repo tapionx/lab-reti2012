@@ -9,25 +9,7 @@
 #include <errno.h>
 #include <sys/time.h>
 
-#define BUFSIZE 50
-
-#define MAXSIZE 65000/*65536*/
-
-#define HEADERSIZE 5
-
-#define BODYSIZE (MAXSIZE) - (HEADERSIZE)
-
-typedef struct packet{
-	uint32_t id;
-	char tipo;
-	char body[BODYSIZE];
-} packet;
-
-typedef struct lista{
-    struct lista* next;
-    packet p;
-    struct timeval sentime;
-} lista;
+#include "utils.h"
 
 /* -------- LISTE DINAMICHE con malloc() --------------*/
 
@@ -92,8 +74,10 @@ lista rimuovi(lista* sentinella, uint32_t id){
 		}
 		cur = cur->next;
 	}
+	printf("ALGORITMO DELLO STRUZZOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n\n\n");
 	printf("rimuovi(): pacchetto non trovato\n");
-	exit(1);
+	return ret;
+	/*exit(1);*/
 }
 /* -------------- SOCKET, funzioni ricorrenti -----------------*/
 
