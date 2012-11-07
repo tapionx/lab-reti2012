@@ -25,7 +25,10 @@
 #include <unistd.h>
 
 
+
 int main(int argc, char *argv[]){
+
+	extern int nlist;
 
 	int udp_sock = 0;
 	int tcp_sock = 0;
@@ -49,16 +52,16 @@ int main(int argc, char *argv[]){
 
 	fd_set rfds;
 	fd_set errfds;
-	struct timeval timeout;
 	int retsel;
 	int fdmax;
 
-	struct timeval curtime;
-	time_t s_left;
-	suseconds_t ms_left;
+	struct timeval timeout, curtime, towait;
 
   lista to_ack;
   to_ack.next = NULL;
+
+	timeout.tv_sec = TIMEOUT;
+	timeout.tv_usec = 0;
 
 	/* recupero parametri */
 	if(argc > 1)
@@ -121,15 +124,15 @@ int main(int argc, char *argv[]){
 		FD_ZERO(&errfds);
 		FD_SET(tcp_sock, &errfds);
 
+		/* azzero il buffer */
+		memset(&temp, 0, sizeof(packet));
+
 		/* Decidiamo quanto tempo aspettare prima di risvegliarci
 		 * dalla select(). Se trovo pacchetti scaduti li mando di nuovo
 		 */
-
-
-		memset(&temp, 0, sizeof(packet));
 		if(to_ack.next == NULL){
-			s_left = 999;
-			ms_left = s_left*1000000;  /* VA BENE COSI? */
+			towait.tv_sec = 999;
+			towait.tv_usec = 99999999;
 		} else {
 			if(gettimeofday(&(curtime), NULL)){
 				printf("gettimeofday() failed, Err: %d \"%s\"\n",
@@ -138,30 +141,25 @@ int main(int argc, char *argv[]){
 							);
 				exit(1);
 			}
-			ms_left = (MS_TIMEOUT - ((curtime.tv_usec) - (to_ack.next->sentime.tv_usec)));
-			s_left = (TIMEOUT - ((curtime.tv_sec) - (to_ack.next->sentime.tv_sec)));
-			if(ms_left <= 0){
-				ms_left = 0;
-				s_left = 0;
+			timeval_subtract(&curtime, &curtime, &(to_ack.next->sentime));
+			if(timeval_subtract(&towait, &timeout, &curtime)){
+				towait.tv_usec = 0;
+				towait.tv_sec = 0;
 			}
 		}
-		/*printf("timeout: %d\n", (int)s_left);*/
-
 		/* Wait time left of the pck */
-        timeout.tv_sec = s_left;
-        timeout.tv_usec = ms_left;
-        /*
-         * SELECT -------------------------------------------------
-         */
-				printf("--SELECT()--\n");
-				printf("aspetto: %d %d\n", (int)s_left, (int)ms_left);
-        retsel = select(fdmax, &rfds, NULL, NULL, &timeout);
-        /* Don't rely on the value of tv now! */
+		printf("\r%d", nlist);
+		fflush(stdout);
+		/*
+		 * SELECT -------------------------------------------------
+		 */
+		retsel = select(fdmax, &rfds, NULL, NULL, &towait);
+		/* Don't rely on the value of tv now! */
 
-        if (retsel == -1){
-           perror("select()");
-           exit(1);
-        }
+		if (retsel == -1){
+			 perror("select()");
+			 exit(1);
+		}
 		else if (retsel) {
 			memset(&buf, 0, sizeof(packet));
 			/*mi ha svegliato un socktcp?*/
@@ -169,7 +167,6 @@ int main(int argc, char *argv[]){
 				/*
 				 * TCP ----------------------------------------------
 				 */
-				printf("--> TCP\n");
 				nread = read(tcp_sock, (char*)buf.body, BODYSIZE );
 
 				/*printf("%s\n", buf.body);*/
@@ -215,7 +212,7 @@ int main(int argc, char *argv[]){
 				}
 				buf.id = ntohl(buf.id);
 				aggiungi(&to_ack, buf);
-				stampalista(&to_ack);
+				/*stampalista(&to_ack);*/
 			}
 			if(FD_ISSET(udp_sock, &rfds)){
 				/*
@@ -237,12 +234,10 @@ int main(int argc, char *argv[]){
 					 exit(1);
 				}
 				/* se ho ricevuto un ACK */
-				printf("--> UDP %d byte: %d %c \n", nread, ntohl(buf.id), buf.tipo);
 				if(buf.tipo == 'B'){
 					buf.id = ntohl(buf.id);
-					printf("--> ACK %d\n", buf.id);
 					temp = rimuovi(&to_ack, buf.id);
-					stampalista(&to_ack);
+					/*stampalista(&to_ack);*/
 				}
 				/* se ho ricevuto un ICMP */
 				if(buf.tipo == 'I'){
@@ -264,10 +259,7 @@ int main(int argc, char *argv[]){
 					}
 					temp.p.id = ntohl(temp.p.id);
 					aggiungi(&to_ack, temp.p);
-					printf("%d %d\n", nwrite, MAXSIZE);
-					printf("rispedito %d byte: %d %c \n", nwrite, temp.p.id, temp.p.tipo);
-					/*printf("rispedito %s\n", temp.p.body);*/
-					stampalista(&to_ack);
+					/*stampalista(&to_ack);*/
 					fflush(stdout);
 				}
 			}
@@ -275,7 +267,6 @@ int main(int argc, char *argv[]){
 			/*
 			 * TIMEOUT -------------------------
 			 */
-			printf("timeout\n");
 			temp = pop(&(to_ack));
 			temp.p.id = htonl(temp.p.id);
 			nwrite = sendto( udp_sock,
@@ -294,10 +285,7 @@ int main(int argc, char *argv[]){
 			}
 			temp.p.id = ntohl(temp.p.id);
 			aggiungi(&to_ack, temp.p);
-			printf("%d %d\n", nwrite, MAXSIZE);
-			printf("rispedito %d byte: %d %c %s\n", nwrite, temp.p.id, temp.p.tipo, temp.p.body);
-			/*printf("rispedito %s\n", temp.p.body);*/
-			stampalista(&to_ack);
+			/*stampalista(&to_ack);*/
 			fflush(stdout);
     }
 	}

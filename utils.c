@@ -11,6 +11,41 @@
 
 #include "utils.h"
 
+/* -------- Sottrarre TIMEVAL ----------------------
+ * http://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
+ */
+
+/* Subtract the `struct timeval' values X and Y,
+storing the result in RESULT.
+Return 1 if the difference is negative, otherwise 0. */
+
+int timeval_subtract (struct timeval *result,
+				      struct timeval *x,
+				      struct timeval *y) {
+/* Perform the carry for the later subtraction by updating y. */
+if (x->tv_usec < y->tv_usec) {
+ int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
+ y->tv_usec -= 1000000 * nsec;
+ y->tv_sec += nsec;
+}
+if (x->tv_usec - y->tv_usec > 1000000) {
+ int nsec = (x->tv_usec - y->tv_usec) / 1000000;
+ y->tv_usec += 1000000 * nsec;
+ y->tv_sec -= nsec;
+}
+
+/* Compute the time remaining to wait.
+  tv_usec is certainly positive. */
+result->tv_sec = x->tv_sec - y->tv_sec;
+result->tv_usec = x->tv_usec - y->tv_usec;
+
+/* Return 1 if result is negative. */
+return x->tv_sec < y->tv_sec;
+}
+
+/* quanti elementi nella lista */
+int nlist = 0;
+
 /* -------- LISTE DINAMICHE con malloc() --------------*/
 
 void stampalista(lista* sentinella){
@@ -44,7 +79,7 @@ void aggiungi( lista* sentinella, packet p ){
     memcpy(&(new->p), &p, sizeof(packet));
     new->next = NULL;
     cur->next = new;
-
+    nlist++;
 }
 
 lista pop(lista* sentinella){
@@ -57,6 +92,7 @@ lista pop(lista* sentinella){
     sentinella->next = todel->next;
     memcpy(&ret, todel, sizeof(lista));
     free(todel);
+    nlist--;
     return ret;
 }
 
@@ -70,6 +106,7 @@ lista rimuovi(lista* sentinella, uint32_t id){
 			cur->next = cur->next->next;
 			memcpy(&ret, todel, sizeof(lista));
 			free(todel);
+			nlist--;
 			return ret;
 		}
 		cur = cur->next;

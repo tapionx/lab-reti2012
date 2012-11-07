@@ -6,8 +6,7 @@
 
 #define BODYSIZE (MAXSIZE) - (HEADERSIZE)
 
-#define TIMEOUT 3 /* seconds */
-#define MS_TIMEOUT 1000000*TIMEOUT
+#define TIMEOUT 2 /* seconds */
 
 typedef struct packet{
 	uint32_t id;
@@ -27,6 +26,12 @@ typedef struct lista{
     packet p;
     struct timeval sentime;
 } lista;
+
+int timeval_subtract (struct timeval *result,
+				      struct timeval *x,
+				      struct timeval *y);
+
+int nlist;
 
 void stampalista(lista* sentinella);
 void aggiungi( lista* sentinella, packet p );
