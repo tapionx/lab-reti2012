@@ -82,47 +82,50 @@ int main(int argc, char *argv[]){
 							buf.body,
 							nread-HEADERSIZE
 						   );
+
+			/* printf("write(): %d byte\n\n", nwrite); */
+
+			if (nwrite == -1){
+				printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+				exit(1);
+			}
+
+			if(nwrite < nread-HEADERSIZE){
+				printf("TODO: sendall()\n");
+				exit(1);
+			}
+
+			/* Imposto la destinazione dell'ACK
+			 * inviandolo sullo stesso canale dal quale è arrivato
+			 * l'udp perchè probabilmente non è in BURST
+			 */
+
+			/*printf("%d %d\n", from.sin_addr.s_addr, from.sin_port);*/
+			name_socket(&to, from.sin_addr.s_addr, ntohs(from.sin_port));
+
+			nwrite = sendto( udp_sock,
+							 (char*)&buf,
+							 nread,
+							 0,
+							 (struct sockaddr*)&to,
+							 (socklen_t )sizeof(struct sockaddr_in)
+						   );
+
+			if (nwrite == -1){
+				printf ("sendto() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+				exit(1);
+			}
+
+			if(nwrite < nread){
+				printf("TODO: sendall()\n");
+				exit(1);
+			}
+
 		}
 		if(buf.tipo == 'I') {
 			printf("ICMP! %d\n", ntohl(buf.id) );
 		}
-		/* printf("write(): %d byte\n\n", nwrite); */
 
-		if (nwrite == -1){
-			printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
-        	exit(1);
-   		}
-
-		if(nwrite < nread-HEADERSIZE){
-			printf("TODO: sendall()\n");
-			exit(1);
-		}
-
-		/* Imposto la destinazione dell'ACK
-		 * inviandolo sullo stesso canale dal quale è arrivato
-		 * l'udp perchè probabilmente non è in BURST
-		 */
-
-		/*printf("%d %d\n", from.sin_addr.s_addr, from.sin_port);*/
-		name_socket(&to, from.sin_addr.s_addr, ntohs(from.sin_port));
-
-   		nwrite = sendto( udp_sock,
-						 (char*)&buf,
-						 nread,
-						 0,
-						 (struct sockaddr*)&to,
-						 (socklen_t )sizeof(struct sockaddr_in)
-					   );
-
-		if (nwrite == -1){
-			printf ("sendto() failed, Err: %d \"%s\"\n",errno,strerror(errno));
-        	exit(1);
-   		}
-
-		if(nwrite < nread){
-			printf("TODO: sendall()\n");
-			exit(1);
-		}
 	}
 	if (nread == -1){
 		 printf ("recvfrom() failed, Err: %d \"%s\"\n",errno,strerror(errno));

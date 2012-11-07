@@ -44,7 +44,7 @@ int main(int argc, char *argv[]){
 	struct sockaddr_in to, from;
 
 	packet buf;
-	lista temp;
+	packet temp; /* SI PUO USARE SOLO BUF? */
 
 	char remote_ip[40];
 
@@ -242,25 +242,27 @@ int main(int argc, char *argv[]){
 				/* se ho ricevuto un ICMP */
 				if(buf.tipo == 'I'){
 					temp = rimuovi(&to_ack, ((ICMP*)&buf)->idpck);
-					temp.p.id = htonl(temp.p.id);
-					nwrite = sendto( udp_sock,
-													 (char*)&temp.p,
-													 MAXSIZE,
-													 0,
-													 (struct sockaddr*)&to,
-													 (socklen_t )sizeof(struct sockaddr_in)
-												 );
-					if (nwrite == -1){
-					 printf ("read() failed, Err: %d \"%s\"\n",
-							 errno,
-							 strerror(errno)
-							 );
-					 exit(1);
+					if(temp.tipo != 'E'){
+						temp.id = htonl(temp.id);
+						nwrite = sendto( udp_sock,
+														 (char*)&temp,
+														 MAXSIZE,
+														 0,
+														 (struct sockaddr*)&to,
+														 (socklen_t )sizeof(struct sockaddr_in)
+													 );
+						if (nwrite == -1){
+						 printf ("read() failed, Err: %d \"%s\"\n",
+								 errno,
+								 strerror(errno)
+								 );
+						 exit(1);
+						}
+						temp.id = ntohl(temp.id);
+						aggiungi(&to_ack, temp);
+						/*stampalista(&to_ack);*/
+						fflush(stdout);
 					}
-					temp.p.id = ntohl(temp.p.id);
-					aggiungi(&to_ack, temp.p);
-					/*stampalista(&to_ack);*/
-					fflush(stdout);
 				}
 			}
 		} else {
@@ -268,9 +270,9 @@ int main(int argc, char *argv[]){
 			 * TIMEOUT -------------------------
 			 */
 			temp = pop(&(to_ack));
-			temp.p.id = htonl(temp.p.id);
+			temp.id = htonl(temp.id);
 			nwrite = sendto( udp_sock,
-											 (char*)&temp.p,
+											 (char*)&temp,
 											 MAXSIZE,
 											 0,
 											 (struct sockaddr*)&to,
@@ -283,8 +285,8 @@ int main(int argc, char *argv[]){
 					 );
 			 exit(1);
 			}
-			temp.p.id = ntohl(temp.p.id);
-			aggiungi(&to_ack, temp.p);
+			temp.id = ntohl(temp.id);
+			aggiungi(&to_ack, temp);
 			/*stampalista(&to_ack);*/
 			fflush(stdout);
     }

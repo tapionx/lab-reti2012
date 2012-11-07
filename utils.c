@@ -82,21 +82,21 @@ void aggiungi( lista* sentinella, packet p ){
     nlist++;
 }
 
-lista pop(lista* sentinella){
+packet pop(lista* sentinella){
     lista* todel;
     lista ret;
     memset(&ret, 0, sizeof(lista));
     if(sentinella->next == NULL)
-        return ret;
+        return ret.p;
     todel = sentinella->next;
     sentinella->next = todel->next;
     memcpy(&ret, todel, sizeof(lista));
     free(todel);
     nlist--;
-    return ret;
+    return ret.p;
 }
 
-lista rimuovi(lista* sentinella, uint32_t id){
+packet rimuovi(lista* sentinella, uint32_t id){
 	lista* cur = sentinella;
 	lista* todel;
 	lista ret;
@@ -107,13 +107,12 @@ lista rimuovi(lista* sentinella, uint32_t id){
 			memcpy(&ret, todel, sizeof(lista));
 			free(todel);
 			nlist--;
-			return ret;
+			return ret.p;
 		}
 		cur = cur->next;
 	}
-	printf("ALGORITMO DELLO STRUZZOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO\n\n\n");
-	printf("rimuovi(): pacchetto non trovato\n");
-	return ret;
+	ret.p.tipo = 'E';
+	return ret.p;
 	/*exit(1);*/
 }
 /* -------------- SOCKET, funzioni ricorrenti -----------------*/

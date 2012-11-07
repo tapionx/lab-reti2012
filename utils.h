@@ -6,7 +6,7 @@
 
 #define BODYSIZE (MAXSIZE) - (HEADERSIZE)
 
-#define TIMEOUT 2 /* seconds */
+#define TIMEOUT 7 /* seconds */
 
 typedef struct packet{
 	uint32_t id;
@@ -35,8 +35,8 @@ int nlist;
 
 void stampalista(lista* sentinella);
 void aggiungi( lista* sentinella, packet p );
-lista pop(lista* sentinella);
-lista rimuovi(lista* sentinella, uint32_t id);
+packet pop(lista* sentinella);
+packet rimuovi(lista* sentinella, uint32_t id);
 
 
 int get_socket(int type);
