@@ -6,7 +6,7 @@
 
 #define BODYSIZE (MAXSIZE) - (HEADERSIZE)
 
-#define TIMEOUT 7 /* seconds */
+#define TIMEOUT 1 /* seconds */
 
 typedef struct packet{
 	uint32_t id;
@@ -25,6 +25,7 @@ typedef struct lista{
     struct lista* next;
     packet p;
     struct timeval sentime;
+    int size;
 } lista;
 
 int timeval_subtract (struct timeval *result,
@@ -35,6 +36,7 @@ int nlist;
 
 void stampalista(lista* sentinella);
 void aggiungi( lista* sentinella, packet p );
+void aggiungi_in_ordine( lista* sentinella, packet p );
 packet pop(lista* sentinella);
 packet rimuovi(lista* sentinella, uint32_t id);
 

@@ -131,6 +131,7 @@ int main(int argc, char *argv[]){
 		 * dalla select(). Se trovo pacchetti scaduti li mando di nuovo
 		 */
 		if(to_ack.next == NULL){
+			/* METTERE NULL */
 			towait.tv_sec = 999;
 			towait.tv_usec = 99999999;
 		} else {

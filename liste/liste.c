@@ -72,6 +72,33 @@ void aggiungi( lista* sentinella, packet p ){
 
 }
 
+void aggiungi_in_ordine( lista* sentinella, packet p ){
+	/* printf("[%d|%c|%s]\n", p.id, p.tipo, p.body); */
+    lista* new;
+    lista* cur = sentinella;
+    /* Se il paccketto è già stato spedito, lo scarto */
+    if(cur->next != NULL && cur->next->p.id > p.id)
+		return;
+    while(cur->next != NULL && cur->next->p.id < p.id){
+        cur = cur->next;
+    }
+    /* se il pacchetto esiste già lo scarto */
+    if(cur->next != NULL && cur->next->p.id == p.id)
+		return;
+    new = malloc((size_t)sizeof(lista));
+    if(new == NULL){
+		printf("malloc() failed\n");
+		exit(1);
+	}
+	if(gettimeofday(&(new->sentime), NULL)) {
+		printf ("gettimeofday() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        exit(1);
+	}
+    memcpy(&(new->p), &p, sizeof(packet));
+    new->next = cur->next;
+    cur->next = new;
+}
+
 lista pop(lista* sentinella){
     lista* todel;
     lista ret;
@@ -124,6 +151,10 @@ int main(){
 
 			case 3:
 				rimuovi(&sentinella, a.id);
+				break;
+
+			case 4:
+				aggiungi_in_ordine(&sentinella, a);
 				break;
             default:
                 break;

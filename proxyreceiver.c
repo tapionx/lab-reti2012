@@ -28,6 +28,12 @@ int main(int argc, char *argv[]){
 	packet buf;
 	char remote_ip[40];
 
+	/* una lista ordinata che contiene i pacchetti da spedire al
+	   receiver */
+	lista to_send;
+
+	uint32_t id_to_wait = 1;
+
 	/* recupero parametri */
 	if(argc > 1)
 		strcpy(remote_ip, argv[1]);
@@ -72,37 +78,16 @@ int main(int argc, char *argv[]){
 		if(nread == -1)
 			printf("ERRORE\n");
 
-		/* printf("recvfrom(): %d byte\n", nread); */
-
-		/* printf("%d %c\n", ntohl(buf.id), buf.tipo); */
-
 		if(buf.tipo == 'B'){
-
-			nwrite = write( tcp_sock,
-							buf.body,
-							nread-HEADERSIZE
-						   );
-
-			/* printf("write(): %d byte\n\n", nwrite); */
-
-			if (nwrite == -1){
-				printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
-				exit(1);
-			}
-
-			if(nwrite < nread-HEADERSIZE){
-				printf("TODO: sendall()\n");
-				exit(1);
-			}
 
 			/* Imposto la destinazione dell'ACK
 			 * inviandolo sullo stesso canale dal quale è arrivato
 			 * l'udp perchè probabilmente non è in BURST
 			 */
 
-			/*printf("%d %d\n", from.sin_addr.s_addr, from.sin_port);*/
 			name_socket(&to, from.sin_addr.s_addr, ntohs(from.sin_port));
 
+			/* invio ACK */
 			nwrite = sendto( udp_sock,
 							 (char*)&buf,
 							 nread,
@@ -112,7 +97,10 @@ int main(int argc, char *argv[]){
 						   );
 
 			if (nwrite == -1){
-				printf ("sendto() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+				printf ("sendto() failed, Err: %d \"%s\"\n",
+						errno,
+						strerror(errno)
+					    );
 				exit(1);
 			}
 
@@ -121,14 +109,54 @@ int main(int argc, char *argv[]){
 				exit(1);
 			}
 
+		/*---------------------------------------*/
+
+			printf("aspetto  id: %d\n", id_to_wait);
+			printf("ricevuto id: %d\n", ntohl(buf.id));
+
+
+			if(ntohl(buf.id) >= id_to_wait){
+				buf.id = ntohl(buf.id);
+				aggiungi_in_ordine(&to_send, buf);
+				printf("aggiunto id: %d\n", buf.id);
+			}
+
+			while( to_send.next != NULL && to_send.next->p.id == id_to_wait){
+
+				memset(&buf, 0, sizeof(buf));
+				buf = pop(&to_send);
+				nwrite = write( tcp_sock,
+								buf.body,
+								nread-HEADERSIZE
+							   );
+				if (nwrite == -1){
+					printf ("write() failed, Err: %d \"%s\"\n",
+							errno,
+							strerror(errno)
+							);
+					exit(1);
+				}
+				if(nwrite < nread-HEADERSIZE){
+					printf("TODO: sendall()\n");
+					exit(1);
+				}
+
+				printf("inviato  id: %d %d byte\n", buf.id, nwrite);
+				printf("%s\n", buf.body);
+				id_to_wait++;
+			}
 		}
 		if(buf.tipo == 'I') {
 			printf("ICMP! %d\n", ntohl(buf.id) );
 		}
 
+	printf("----------------\n");
 	}
 	if (nread == -1){
-		 printf ("recvfrom() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+		 printf ("recvfrom() failed, Err: %d \"%s\"\n",
+				 errno,
+				 strerror(errno)
+				 );
          exit(1);
 	} else {
 		printf ("Trasferimento completato\n");
