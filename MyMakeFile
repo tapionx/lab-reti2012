@@ -1,0 +1,47 @@
+#Macros
+GCCFLAGS= -ansi -pedantic -Wall -Wunused
+
+#CREAZIONE FILES .exe
+
+
+proxysender.exe: ./proxysender.o ./utils.o
+				 gcc -o proxyreceiver.exe ./proxyreceiver.o
+				 @echo "\nPROXY SENDER DONE"
+
+proxyreceiver.exe: ./proxyreceiver.o ./utils.o
+					gcc -o proxyreceiver.exe ./proxyreceiver.o
+					@echo "\nPROXY RECEIVER DONE"
+
+sender.exe: ./sender.o ./utils.o
+			gcc -o sender.exe ./sender.o ./utils.o
+			@echo "\nSENDER DONE"
+
+receiver.exe: ./receiver.o ./utils.o
+				gcc -o receiver.exe ./receiver.o ./utils.o
+				@echo "\nRECEIVER DONE"
+
+
+
+#CREAZIONE FILE OGGETTO
+
+proxyreceiver.o: proxyreceiver.c
+			gcc -c $(GCCFLAGS) -I proxyreceiver.c
+			
+receiver.o: receiver.c
+			gcc -c $(GCCFLAGS) -I receiver.c
+			
+sender.o: sender.c
+		 gcc -c $(GCCFLAGS) -I sender.c
+			
+proxysender.o: proxysender.c
+			   gcc -c $(GCCFLAGS) -I proxysender.c
+			
+utils.o: utils.c
+		gcc -c $(GCCFLAGS) -I utils.c
+		
+		
+
+clean:	
+	rm -f core* *.stackdump
+	rm -f *.exe
+	rm -f *.o
