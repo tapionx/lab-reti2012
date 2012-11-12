@@ -1,5 +1,5 @@
 GCCFLAGS= -ansi -Wall -Wunused -pedantic -ggdb
-LINKERFLAGS=-lpthread -lm
+LINKERFLAGS= -lpthread -lm
 
 all:  Ritardatore.exe
 
