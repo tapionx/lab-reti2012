@@ -33,18 +33,15 @@ int main(int argc, char *argv[]){
 	int udp_sock = 0;
 	int tcp_sock = 0;
 	int nread = 0;
-	int nwrite = 0;
 	int local_port_tcp = 0;
 	int local_port_udp = 0;
 	int rit_port[3];
 	int rit_turno = 0;
 
-	int len = sizeof(struct sockaddr_in*);
-
 	struct sockaddr_in to, from;
 
-	packet buf;
-	packet temp; /* SI PUO USARE SOLO BUF? */
+	packet buf_p;
+	lista  buf_l; /* SI PUO USARE SOLO BUF? */
 
 	char remote_ip[40];
 
@@ -125,7 +122,8 @@ int main(int argc, char *argv[]){
 		FD_SET(tcp_sock, &errfds);
 
 		/* azzero il buffer */
-		memset(&temp, 0, sizeof(packet));
+		memset(&buf_l, 0, sizeof(lista));
+		memset(&buf_p, 0, sizeof(packet));
 
 		/* Decidiamo quanto tempo aspettare prima di risvegliarci
 		 * dalla select(). Se trovo pacchetti scaduti li mando di nuovo
@@ -149,7 +147,7 @@ int main(int argc, char *argv[]){
 			}
 		}
 		/* Wait time left of the pck */
-		printf("\r%d", nlist);
+		printf("\r%d  ", nlist);
 		fflush(stdout);
 		/*
 		 * SELECT -------------------------------------------------
@@ -162,105 +160,52 @@ int main(int argc, char *argv[]){
 			 exit(1);
 		}
 		else if (retsel) {
-			memset(&buf, 0, sizeof(packet));
+
 			/*mi ha svegliato un socktcp?*/
 			if(FD_ISSET(tcp_sock, &rfds)){
 				/*
 				 * TCP ----------------------------------------------
 				 */
-				nread = read(tcp_sock, (char*)buf.body, BODYSIZE );
-
-				/*printf("%s\n", buf.body);*/
+				nread = readn(tcp_sock, (char*)buf_p.body, BODYSIZE, NULL );
 
 				if(nread == 0){
 					printf("La connessione TCP e' stata chiusa\n");
 					/* FAI QUALCOSA */
 					exit(1);
 				}
+
 				/*Creo l'header del pacchetto e invio il pacchetto come UDP*/
 				progressive_id++;
-				buf.id = htonl(progressive_id);
-				buf.tipo = 'B';
+				buf_p.id = htonl(progressive_id);
+				buf_p.tipo = 'B';
 
-				nwrite = sendto( udp_sock,
-								 (char*)&buf,
-								 HEADERSIZE + nread,
-								 0,
-								 (struct sockaddr*)&to,
-								 (socklen_t )sizeof(struct sockaddr_in)
-							   );
-				/* printf("sendto(): %d byte\n\n", nwrite); */
+				writen( udp_sock, (char*)&buf_p, HEADERSIZE + nread, &to);
 
-				if (nwrite == -1){
-					printf ("sendto() failed, Err: %d \"%s\"\n",
-							errno,
-							strerror(errno)
-							);
-					exit(1);
-				}
-
-				if(nwrite < HEADERSIZE+nread){
-					printf("TODO: sendall()\n");
-					exit(1);
-				}
-
-				if (nread == -1){
-				 printf ("read() failed, Err: %d \"%s\"\n",
-						 errno,
-						 strerror(errno)
-						 );
-				 exit(1);
-				}
-				buf.id = ntohl(buf.id);
-				aggiungi(&to_ack, buf);
+				buf_p.id = ntohl(buf_p.id);
+				aggiungi(&to_ack, buf_p, nread+HEADERSIZE);
 				/*stampalista(&to_ack);*/
 			}
 			if(FD_ISSET(udp_sock, &rfds)){
 				/*
 				 * UDP -----------------------------------------
 				 */
-				nread = recvfrom( udp_sock,
-								  (char*)&buf,
-								  MAXSIZE,
-								  0,
-								  (struct sockaddr*) &from,
-								  (socklen_t*)&len
-								);
+				nread = readn( udp_sock, (char*)&buf_p, MAXSIZE, &from);
 
-				if (nread == -1){
-					 printf ("recvfrom() failed, Err: %d \"%s\"\n",
-							 errno,
-							 strerror(errno)
-							 );
-					 exit(1);
-				}
 				/* se ho ricevuto un ACK */
-				if(buf.tipo == 'B'){
-					buf.id = ntohl(buf.id);
-					temp = rimuovi(&to_ack, buf.id);
-					/*stampalista(&to_ack);*/
+				if(buf_p.tipo == 'B'){
+					buf_p.id = ntohl(buf_p.id);
+					buf_l = rimuovi(&to_ack, buf_p.id);
 				}
 				/* se ho ricevuto un ICMP */
-				if(buf.tipo == 'I'){
-					temp = rimuovi(&to_ack, ((ICMP*)&buf)->idpck);
-					if(temp.tipo != 'E'){
-						temp.id = htonl(temp.id);
-						nwrite = sendto( udp_sock,
-														 (char*)&temp,
-														 MAXSIZE,
-														 0,
-														 (struct sockaddr*)&to,
-														 (socklen_t )sizeof(struct sockaddr_in)
-													 );
-						if (nwrite == -1){
-						 printf ("read() failed, Err: %d \"%s\"\n",
-								 errno,
-								 strerror(errno)
-								 );
-						 exit(1);
-						}
-						temp.id = ntohl(temp.id);
-						aggiungi(&to_ack, temp);
+				if(buf_p.tipo == 'I'){
+					buf_l = rimuovi(&to_ack, ((ICMP*)&buf_p)->idpck);
+					if(buf_l.p.tipo != 'E'){
+						buf_l.p.id = htonl(buf_l.p.id);
+
+						writen( udp_sock, (char*)&buf_l.p, buf_l.size, &to);
+
+						buf_l.p.id = ntohl(buf_l.p.id);
+						aggiungi(&to_ack, buf_l.p, buf_l.size);
 						/*stampalista(&to_ack);*/
 						fflush(stdout);
 					}
@@ -270,25 +215,12 @@ int main(int argc, char *argv[]){
 			/*
 			 * TIMEOUT -------------------------
 			 */
-			temp = pop(&(to_ack));
-			temp.id = htonl(temp.id);
-			nwrite = sendto( udp_sock,
-											 (char*)&temp,
-											 MAXSIZE,
-											 0,
-											 (struct sockaddr*)&to,
-											 (socklen_t )sizeof(struct sockaddr_in)
-										 );
-			if (nwrite == -1){
-			 printf ("read() failed, Err: %d \"%s\"\n",
-					 errno,
-					 strerror(errno)
-					 );
-			 exit(1);
-			}
-			temp.id = ntohl(temp.id);
-			aggiungi(&to_ack, temp);
-			/*stampalista(&to_ack);*/
+			buf_l = pop(&(to_ack));
+			buf_l.p.id = htonl(buf_l.p.id);
+			writen( udp_sock, (char*)&buf_l.p, buf_l.size, &to);
+
+			buf_l.p.id = ntohl(buf_l.p.id);
+			aggiungi(&to_ack, buf_l.p, buf_l.size);
 			fflush(stdout);
     }
 	}

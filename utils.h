@@ -20,7 +20,6 @@ typedef struct ICMP{
 	uint32_t idpck;
 } ICMP;
 
-
 typedef struct lista{
     struct lista* next;
     packet p;
@@ -35,10 +34,10 @@ int timeval_subtract (struct timeval *result,
 int nlist;
 
 void stampalista(lista* sentinella);
-void aggiungi( lista* sentinella, packet p );
-void aggiungi_in_ordine( lista* sentinella, packet p );
-packet pop(lista* sentinella);
-packet rimuovi(lista* sentinella, uint32_t id);
+void aggiungi( lista* sentinella, packet p, int size );
+void aggiungi_in_ordine( lista* sentinella, packet p, int size );
+lista pop(lista* sentinella);
+lista rimuovi(lista* sentinella, uint32_t id);
 
 
 int get_socket(int type);
@@ -60,3 +59,7 @@ int TCP_connection_send(const char *remote_ip, int remote_port);
 int TCP_connection_recv(int local_port);
 
 int UDP_sock(int local_port);
+
+ssize_t readn (int fd, char *buf, size_t n, struct sockaddr_in *from);
+
+void writen (int fd, char *buf, size_t n, struct sockaddr_in *to);

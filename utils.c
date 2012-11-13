@@ -52,7 +52,7 @@ void stampalista(lista* sentinella){
     lista* cur = sentinella->next;
     printf("[");
     while(cur != NULL){
-        printf(" (%d) ",cur->p.id);
+        printf(" (%d - %d - %s) ",cur->p.id, cur->size, cur->p.body);
         /*printf(" (%d|%c|%s - %d) ", cur->p.id, cur->p.tipo, cur->p.body, (int)cur->sentime.tv_sec);*/
         cur = cur->next;
     }
@@ -60,7 +60,7 @@ void stampalista(lista* sentinella){
 
 }
 
-void aggiungi( lista* sentinella, packet p ){
+void aggiungi( lista* sentinella, packet p, int size){
 	/* printf("[%d|%c|%s]\n", p.id, p.tipo, p.body); */
     lista* new;
     lista* cur = sentinella;
@@ -77,12 +77,13 @@ void aggiungi( lista* sentinella, packet p ){
         exit(1);
 	}
     memcpy(&(new->p), &p, sizeof(packet));
+    new->size = size;
     new->next = NULL;
     cur->next = new;
     nlist++;
 }
 
-void aggiungi_in_ordine( lista* sentinella, packet p ){
+void aggiungi_in_ordine( lista* sentinella, packet p, int size){
 	/* printf("[%d|%c|%s]\n", p.id, p.tipo, p.body); */
     lista* new;
     lista* cur = sentinella;
@@ -107,25 +108,26 @@ void aggiungi_in_ordine( lista* sentinella, packet p ){
         exit(1);
 	}
     memcpy(&(new->p), &p, sizeof(packet));
+    new->size = size;
     new->next = cur->next;
     cur->next = new;
 }
 
-packet pop(lista* sentinella){
+lista pop(lista* sentinella){
     lista* todel;
     lista ret;
     memset(&ret, 0, sizeof(lista));
     if(sentinella->next == NULL)
-        return ret.p;
+        return ret;
     todel = sentinella->next;
     sentinella->next = todel->next;
     memcpy(&ret, todel, sizeof(lista));
     free(todel);
     nlist--;
-    return ret.p;
+    return ret;
 }
 
-packet rimuovi(lista* sentinella, uint32_t id){
+lista rimuovi(lista* sentinella, uint32_t id){
 	lista* cur = sentinella;
 	lista* todel;
 	lista ret;
@@ -136,12 +138,12 @@ packet rimuovi(lista* sentinella, uint32_t id){
 			memcpy(&ret, todel, sizeof(lista));
 			free(todel);
 			nlist--;
-			return ret.p;
+			return ret;
 		}
 		cur = cur->next;
 	}
 	ret.p.tipo = 'E';
-	return ret.p;
+	return ret;
 	/*exit(1);*/
 }
 /* -------------- SOCKET, funzioni ricorrenti -----------------*/
@@ -290,4 +292,70 @@ int UDP_sock(int local_port){
     sock_bind(sock,&local);
 
     return sock;
+}
+
+ssize_t readn (int fd, char *buf, size_t n, struct sockaddr_in *from){
+	socklen_t len;
+	size_t nleft;
+	ssize_t nread;
+	nleft = n;
+	if(from == NULL)
+		len = 0;
+	else
+		len = sizeof(from);
+	while (1) {
+		nread = recvfrom( fd,
+						  buf+n-nleft,
+						  nleft,
+						  0,
+						  (struct sockaddr*) from,
+						  &len
+						 );
+		nleft -= nread;
+		if ( nread < 0) {
+			if (errno != EINTR){
+				/*return(-1);*/   /* restituisco errore */
+				printf ("recvfrom---() failed, Err: %d \"%s\"\n",
+					    errno,
+					    strerror(errno)
+					   );
+				exit(1);
+			}
+		}
+		else
+			return( n - nleft);
+
+	}
+	return( n - nleft);  /* return >= 0 */
+}
+
+void writen (int fd, char *buf, size_t n, struct sockaddr_in *to){
+	size_t nleft;
+	ssize_t nwritten;
+	char *ptr;
+	ptr = buf;
+	nleft = n;
+	while (nleft > 0){
+		if ( (nwritten = sendto(
+								fd,
+								ptr,
+								nleft,
+								MSG_NOSIGNAL,
+								(struct sockaddr*)to,
+								(socklen_t )sizeof(struct sockaddr_in)
+								 )) < 0) {
+			if (errno == EINTR)
+				nwritten = 0;   /* and call write() again*/
+			else {
+				/*return(-1);*/       /* error */
+				printf ("recvfrom() failed, Err: %d \"%s\"\n",
+					    errno,
+					    strerror(errno)
+					   );
+				exit(1);
+			}
+		}
+		nleft -= nwritten;
+		ptr += nwritten;
+	}
 }

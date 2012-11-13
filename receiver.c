@@ -30,9 +30,9 @@ int main(int argc, char *argv[])
 
     char local_filename[100];
 
-    int dest_file;
+    /*int dest_file;*/
 
-    ssize_t nwrite = 0;
+    /*ssize_t nwrite = 0;*/
     ssize_t nread  = 0;
 
     if(argc != 2) {
@@ -45,13 +45,14 @@ int main(int argc, char *argv[])
     local_port_number = 64000;
 
     /* Open the file to write */
+    /*
     printf("open()\n");
     dest_file = open(local_filename, O_CREAT|O_WRONLY, S_IRWXU);
     if (dest_file == -1)  {
         printf ("open() failed, Err: %d \"%s\"\n",errno,strerror(errno));
         exit(1);
     }
-
+	*/
     socketfd = TCP_connection_recv(local_port_number);
 
     /* Transfer data */
@@ -59,7 +60,7 @@ int main(int argc, char *argv[])
 
 		printf ("read(): %d byte\n%s\n", nread,buf);
 
-        nwrite = write(dest_file, buf, nread);
+        /*nwrite = write(dest_file, buf, nread);
 
         printf("write(): %d byte\n", nwrite);
 
@@ -67,6 +68,7 @@ int main(int argc, char *argv[])
             printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
             exit(1);
         }
+        * */
  		memset(buf, 0, sizeof(buf));
     }
 
@@ -80,7 +82,7 @@ int main(int argc, char *argv[])
     /* chiusura */
     printf ("close()\n");
     close(socketfd);
-    close(dest_file);
+    /*close(dest_file);*/
 
     return(0);
 }

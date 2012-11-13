@@ -21,10 +21,13 @@
 
 int main(int argc, char *argv[]){
 
-	int udp_sock, tcp_sock, nread, nwrite, len, local_port, remote_port;
+	int udp_sock, tcp_sock, nread, local_port, remote_port;
+
+	int quanti_in_attesa = 0;
 
 	struct sockaddr_in from, to;
 
+	lista  buf_l;
 	packet buf;
 	char remote_ip[40];
 
@@ -64,19 +67,9 @@ int main(int argc, char *argv[]){
 
 	name_socket(&from, htonl(INADDR_ANY), 0);
 
-	len = sizeof(struct sockaddr_in);
+	while(1) {
 
-	while( (nread = recvfrom( udp_sock,
-							  (char*)&buf,
-							  MAXSIZE,
-							  0,
-							  (struct sockaddr*) &from,
-							  (socklen_t*)&len
-							)) > 0) {
-
-		/* CONTROLLARE ERRORI! */
-		if(nread == -1)
-			printf("ERRORE\n");
+		nread = readn(udp_sock, (char*)&buf, MAXSIZE, &from);
 
 		if(buf.tipo == 'B'){
 
@@ -84,82 +77,42 @@ int main(int argc, char *argv[]){
 			 * inviandolo sullo stesso canale dal quale è arrivato
 			 * l'udp perchè probabilmente non è in BURST
 			 */
-
 			name_socket(&to, from.sin_addr.s_addr, ntohs(from.sin_port));
 
 			/* invio ACK */
-			nwrite = sendto( udp_sock,
-							 (char*)&buf,
-							 nread,
-							 0,
-							 (struct sockaddr*)&to,
-							 (socklen_t )sizeof(struct sockaddr_in)
-						   );
-
-			if (nwrite == -1){
-				printf ("sendto() failed, Err: %d \"%s\"\n",
-						errno,
-						strerror(errno)
-					    );
-				exit(1);
-			}
-
-			if(nwrite < nread){
-				printf("TODO: sendall()\n");
-				exit(1);
-			}
+			writen(udp_sock, (char*)&buf, HEADERSIZE+1, &to);
 
 		/*---------------------------------------*/
 
-			printf("aspetto  id: %d\n", id_to_wait);
-			printf("ricevuto id: %d\n", ntohl(buf.id));
-
-
 			if(ntohl(buf.id) >= id_to_wait){
 				buf.id = ntohl(buf.id);
-				aggiungi_in_ordine(&to_send, buf);
-				printf("aggiunto id: %d\n", buf.id);
+				aggiungi_in_ordine(&to_send, buf, nread-HEADERSIZE);
+				quanti_in_attesa++;
+				printf("\r%d  ", quanti_in_attesa);
+				fflush(stdout);
 			}
 
 			while( to_send.next != NULL && to_send.next->p.id == id_to_wait){
 
-				memset(&buf, 0, sizeof(buf));
-				buf = pop(&to_send);
-				nwrite = write( tcp_sock,
-								buf.body,
-								nread-HEADERSIZE
-							   );
-				if (nwrite == -1){
-					printf ("write() failed, Err: %d \"%s\"\n",
-							errno,
-							strerror(errno)
-							);
-					exit(1);
-				}
-				if(nwrite < nread-HEADERSIZE){
-					printf("TODO: sendall()\n");
-					exit(1);
-				}
-
-				printf("inviato  id: %d %d byte\n", buf.id, nwrite);
-				printf("%s\n", buf.body);
+				memset(&buf_l, 0, sizeof(lista));
+				memset(&buf_l.p, 0, sizeof(packet));
+				buf_l = pop(&to_send);
+				quanti_in_attesa--;
+				writen( tcp_sock,
+				    	buf_l.p.body,
+						buf_l.size,
+						NULL
+					   );
 				id_to_wait++;
+
+				printf("\r%d  ", quanti_in_attesa);
+				fflush(stdout);
 			}
 		}
 		if(buf.tipo == 'I') {
 			printf("ICMP! %d\n", ntohl(buf.id) );
 		}
 
-	printf("----------------\n");
-	}
-	if (nread == -1){
-		 printf ("recvfrom() failed, Err: %d \"%s\"\n",
-				 errno,
-				 strerror(errno)
-				 );
-         exit(1);
-	} else {
-		printf ("Trasferimento completato\n");
 	}
 
 	return(0);

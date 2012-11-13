@@ -11,10 +11,9 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # Connect to server and send data
 sock.connect((HOST, PORT))
 
-for i in range(1,200):
+for i in range(1,1000):
 	sock.sendall(str(i) + "\n")
 	print i
-	time.sleep(0.05)
 
 time.sleep(20)
 

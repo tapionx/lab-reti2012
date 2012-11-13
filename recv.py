@@ -19,10 +19,10 @@ a = 1
 
 while 1:
     data = conn.recv(BUFFER_SIZE)
-    data = ''.join(data[0:3].split())
+    #data = ''.join(data[0:3].split())
     print data,
     sys.stdout.flush()
-    #if data != a:
-	#print "ERRORE ERRORE ERRORE ERRORE"
+    if int(data) != a:
+	print "ERRORE ERRORE ERRORE ERRORE"
     a = a + 1
 conn.close()
