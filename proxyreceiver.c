@@ -30,6 +30,7 @@ int main(int argc, char *argv[]){
 	lista  buf_l;
 	packet buf;
 	char remote_ip[40];
+	char ritardatore_ip[40];
 
 	/* una lista ordinata che contiene i pacchetti da spedire al
 	   receiver */
@@ -42,19 +43,25 @@ int main(int argc, char *argv[]){
 		strcpy(remote_ip, argv[1]);
 	else
 		strcpy(remote_ip, "127.0.0.1");
-
+	
 	if(argc > 2)
-		local_port = atoi(argv[2]);
+		strcpy(ritardatore_ip, argv[2]);
+	else
+		strcpy(ritardatore_ip, "127.0.0.1");	
+
+	if(argc > 3)
+		local_port = atoi(argv[3]);
 	else
 		local_port = 63000;
 
-	if(argc > 3)
-		remote_port = atoi(argv[3]);
+	if(argc > 4)
+		remote_port = atoi(argv[4]);
 	else
 		remote_port = 64000;
 
-	printf("remoteIP: %s localPORT: %d remotePORT: %d\n",
+	printf("receiverIP: %s ritardatoreIP %s proxyreceiverPORT: %d receiverPORT: %d\n",
     	   remote_ip,
+    	   ritardatore_ip,
 		   local_port,
 		   remote_port
 		  );
@@ -80,7 +87,7 @@ int main(int argc, char *argv[]){
 			 * inviandolo sullo stesso canale dal quale è arrivato
 			 * l'udp perchè probabilmente non è in BURST
 			 */
-			name_socket(&to, from.sin_addr.s_addr, ntohs(from.sin_port));
+			name_socket(&to, inet_addr(ritardatore_ip), ntohs(from.sin_port));
 
 			/* invio ACK */
 			writen(udp_sock, (char*)&buf, HEADERSIZE+1, &to);
