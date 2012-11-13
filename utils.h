@@ -6,8 +6,8 @@
 
 #define BODYSIZE (MAXSIZE) - (HEADERSIZE)
 
-#define TIMEOUT 0 /* seconds */
-#define MSTIMEOUT 5000
+#define TIMEOUT 1 /* seconds */
+#define MSTIMEOUT 0
 
 typedef struct packet{
 	uint32_t id;
