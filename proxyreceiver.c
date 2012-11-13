@@ -21,9 +21,9 @@
 
 int main(int argc, char *argv[]){
 
-	int udp_sock, tcp_sock, nread, local_port, remote_port;
+	extern int nlist;
 
-	int quanti_in_attesa = 0;
+	int udp_sock, tcp_sock, nread, local_port, remote_port;
 
 	struct sockaddr_in from, to;
 
@@ -69,6 +69,9 @@ int main(int argc, char *argv[]){
 
 	while(1) {
 
+		printf("\r%d  ", nlist);
+		fflush(stdout);
+
 		nread = readn(udp_sock, (char*)&buf, MAXSIZE, &from);
 
 		if(buf.tipo == 'B'){
@@ -86,18 +89,16 @@ int main(int argc, char *argv[]){
 
 			if(ntohl(buf.id) >= id_to_wait){
 				buf.id = ntohl(buf.id);
-				aggiungi_in_ordine(&to_send, buf, nread-HEADERSIZE);
-				quanti_in_attesa++;
-				printf("\r%d  ", quanti_in_attesa);
+				aggiungi_in_ordine(&to_send, buf, nread-HEADERSIZE);		
+				printf("\r%d  ", nlist);
 				fflush(stdout);
 			}
 
 			while( to_send.next != NULL && to_send.next->p.id == id_to_wait){
-
+				
 				memset(&buf_l, 0, sizeof(lista));
 				memset(&buf_l.p, 0, sizeof(packet));
 				buf_l = pop(&to_send);
-				quanti_in_attesa--;
 				writen( tcp_sock,
 				    	buf_l.p.body,
 						buf_l.size,
@@ -105,14 +106,18 @@ int main(int argc, char *argv[]){
 					   );
 				id_to_wait++;
 
-				printf("\r%d  ", quanti_in_attesa);
+				printf("\r%d  ", nlist);
 				fflush(stdout);
 			}
 		}
 		if(buf.tipo == 'I') {
-			printf("ICMP! %d\n", ntohl(buf.id) );
+			buf.id = ((ICMP*)&buf)->idpck;
+			buf.tipo = 'B';
+			/* buf.body = 0; */
+			writen(udp_sock, (char*)&buf, HEADERSIZE+1, &to);  
+			/* printf("ICMP! %d\n", ntohl(buf.id) ); */
 		}
-
+	fflush(stdout);
 	}
 
 	return(0);

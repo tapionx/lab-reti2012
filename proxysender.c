@@ -57,8 +57,8 @@ int main(int argc, char *argv[]){
   lista to_ack;
   to_ack.next = NULL;
 
-	timeout.tv_sec = TIMEOUT;
-	timeout.tv_usec = 0;
+	timeout.tv_sec  = TIMEOUT;
+	timeout.tv_usec = MSTIMEOUT;
 
 	/* recupero parametri */
 	if(argc > 1)
@@ -109,13 +109,17 @@ int main(int argc, char *argv[]){
 
 	while(1){
 
+		if( tcp_sock == -1 && nlist == 0)
+			exit(1);
+
 		/* incrementiamo il turno delle porte del ritardatore */
 		rit_turno = (rit_turno + 1) % 3;
 		name_socket(&to, inet_addr(remote_ip), rit_port[rit_turno]);
 
 		/* Watch stdin (fd 0) to see when it has input. */
 		FD_ZERO(&rfds);
-		FD_SET(tcp_sock, &rfds);
+		if(tcp_sock != -1)
+			FD_SET(tcp_sock, &rfds);
 		FD_SET(udp_sock, &rfds);
 
 		FD_ZERO(&errfds);
@@ -137,7 +141,7 @@ int main(int argc, char *argv[]){
 				printf("gettimeofday() failed, Err: %d \"%s\"\n",
 							 errno,
 							 strerror(errno)
-							);
+					  );
 				exit(1);
 			}
 			timeval_subtract(&curtime, &curtime, &(to_ack.next->sentime));
@@ -171,19 +175,22 @@ int main(int argc, char *argv[]){
 				if(nread == 0){
 					printf("La connessione TCP e' stata chiusa\n");
 					/* FAI QUALCOSA */
-					exit(1);
+					close(tcp_sock);
+					tcp_sock = -1;
+					/*exit(1);*/
+				} else {
+
+					/*Creo l'header del pacchetto e invio il pacchetto come UDP*/
+					progressive_id++;
+					buf_p.id = htonl(progressive_id);
+					buf_p.tipo = 'B';
+
+					writen( udp_sock, (char*)&buf_p, HEADERSIZE + nread, &to);
+
+					buf_p.id = ntohl(buf_p.id);
+					aggiungi(&to_ack, buf_p, nread+HEADERSIZE);
+					/*stampalista(&to_ack);*/
 				}
-
-				/*Creo l'header del pacchetto e invio il pacchetto come UDP*/
-				progressive_id++;
-				buf_p.id = htonl(progressive_id);
-				buf_p.tipo = 'B';
-
-				writen( udp_sock, (char*)&buf_p, HEADERSIZE + nread, &to);
-
-				buf_p.id = ntohl(buf_p.id);
-				aggiungi(&to_ack, buf_p, nread+HEADERSIZE);
-				/*stampalista(&to_ack);*/
 			}
 			if(FD_ISSET(udp_sock, &rfds)){
 				/*
@@ -206,7 +213,6 @@ int main(int argc, char *argv[]){
 
 						buf_l.p.id = ntohl(buf_l.p.id);
 						aggiungi(&to_ack, buf_l.p, buf_l.size);
-						/*stampalista(&to_ack);*/
 						fflush(stdout);
 					}
 				}

@@ -111,6 +111,7 @@ void aggiungi_in_ordine( lista* sentinella, packet p, int size){
     new->size = size;
     new->next = cur->next;
     cur->next = new;
+    nlist++;
 }
 
 lista pop(lista* sentinella){
@@ -315,7 +316,7 @@ ssize_t readn (int fd, char *buf, size_t n, struct sockaddr_in *from){
 		if ( nread < 0) {
 			if (errno != EINTR){
 				/*return(-1);*/   /* restituisco errore */
-				printf ("recvfrom---() failed, Err: %d \"%s\"\n",
+				printf ("recvfrom() failed, Err: %d \"%s\"\n",
 					    errno,
 					    strerror(errno)
 					   );
