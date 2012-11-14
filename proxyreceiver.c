@@ -97,9 +97,7 @@ int main(int argc, char *argv[]){
 				printf("\nTimeout scaduto: terminazione.\n");
 				exit(EXIT_SUCCESS);
 			}
-
-			printf("Arrivata ulteriore terminazione.\n");
-			}
+		}
 
 		printf("\r%d  ", nlist);
 		fflush(stdout);
@@ -109,8 +107,15 @@ int main(int argc, char *argv[]){
 		if(buf.tipo == 'B'){
 
 			if(ntohl(buf.id) == 0){
-				arrivata_terminazione = 1;
-				printf("\nArrivata terminazione\n");
+				if(arrivata_terminazione == 0){
+					arrivata_terminazione = 1;
+					printf("\nArrivata terminazione\n");
+				} else {
+					printf("\nArrivato ACK, terminazione.\n");
+					close(udp_sock);
+					close(tcp_sock);
+					exit(EXIT_SUCCESS);
+				}
 			}
 
 			/* Imposto la destinazione dell'ACK
