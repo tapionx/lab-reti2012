@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/time.h>
+#include <sys/select.h>
 
 #include "utils.h"
 
@@ -22,6 +23,8 @@
 int main(int argc, char *argv[]){
 
 	extern int nlist;
+
+	int arrivata_terminazione = 0;
 
 	int udp_sock, tcp_sock, nread, local_port, remote_port;
 
@@ -38,16 +41,20 @@ int main(int argc, char *argv[]){
 
 	uint32_t id_to_wait = 1;
 
+	fd_set rfds;
+	struct timeval tv;
+	int retval;
+
 	/* recupero parametri */
 	if(argc > 1)
 		strcpy(remote_ip, argv[1]);
 	else
 		strcpy(remote_ip, "127.0.0.1");
-	
+
 	if(argc > 2)
 		strcpy(ritardatore_ip, argv[2]);
 	else
-		strcpy(ritardatore_ip, "127.0.0.1");	
+		strcpy(ritardatore_ip, "127.0.0.1");
 
 	if(argc > 3)
 		local_port = atoi(argv[3]);
@@ -76,12 +83,35 @@ int main(int argc, char *argv[]){
 
 	while(1) {
 
+		if(arrivata_terminazione && nlist == 0){
+			FD_ZERO(&rfds);
+            FD_SET(udp_sock, &rfds);
+            tv.tv_sec = 5;
+			tv.tv_usec = 0;
+			retval = select(udp_sock+1, &rfds, NULL, NULL, &tv);
+			if (retval == -1)
+               perror("select()");
+			else if (retval == 0){
+				close(udp_sock);
+				close(tcp_sock);
+				printf("\nTimeout scaduto: terminazione.\n");
+				exit(EXIT_SUCCESS);
+			}
+
+			printf("Arrivata ulteriore terminazione.\n");
+			}
+
 		printf("\r%d  ", nlist);
 		fflush(stdout);
 
 		nread = readn(udp_sock, (char*)&buf, MAXSIZE, &from);
 
 		if(buf.tipo == 'B'){
+
+			if(ntohl(buf.id) == 0){
+				arrivata_terminazione = 1;
+				printf("\nArrivata terminazione\n");
+			}
 
 			/* Imposto la destinazione dell'ACK
 			 * inviandolo sullo stesso canale dal quale è arrivato
@@ -96,13 +126,13 @@ int main(int argc, char *argv[]){
 
 			if(ntohl(buf.id) >= id_to_wait){
 				buf.id = ntohl(buf.id);
-				aggiungi_in_ordine(&to_send, buf, nread-HEADERSIZE);		
+				aggiungi_in_ordine(&to_send, buf, nread-HEADERSIZE);
 				printf("\r%d  ", nlist);
 				fflush(stdout);
 			}
 
 			while( to_send.next != NULL && to_send.next->p.id == id_to_wait){
-				
+
 				memset(&buf_l, 0, sizeof(lista));
 				memset(&buf_l.p, 0, sizeof(packet));
 				buf_l = pop(&to_send);
@@ -121,7 +151,7 @@ int main(int argc, char *argv[]){
 			buf.id = ((ICMP*)&buf)->idpck;
 			buf.tipo = 'B';
 			/* buf.body = 0; */
-			writen(udp_sock, (char*)&buf, HEADERSIZE+1, &to);  
+			writen(udp_sock, (char*)&buf, HEADERSIZE+1, &to);
 			/* printf("ICMP! %d\n", ntohl(buf.id) ); */
 		}
 	fflush(stdout);

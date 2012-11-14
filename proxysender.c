@@ -107,8 +107,13 @@ int main(int argc, char *argv[]){
 
 	while(1){
 
-		if( tcp_sock == -1 && nlist == 0)
-			exit(1);
+		if( tcp_sock == -1 && nlist == 0){
+			buf_p.id = 0;
+			buf_p.tipo = 'B';
+			writen(udp_sock, (char*)&buf_p, HEADERSIZE+1, &to);
+			aggiungi(&to_ack, buf_p, HEADERSIZE + 1);
+			printf("\nTutti i pacchetti inviati, inviato segnale di chiusura\n");
+		}
 
 		/* incrementiamo il turno delle porte del ritardatore */
 		rit_turno = (rit_turno + 1) % 3;
@@ -140,7 +145,7 @@ int main(int argc, char *argv[]){
 							 errno,
 							 strerror(errno)
 					  );
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 			timeval_subtract(&curtime, &curtime, &(to_ack.next->sentime));
 			if(timeval_subtract(&towait, &timeout, &curtime)){
@@ -151,6 +156,7 @@ int main(int argc, char *argv[]){
 		/* Wait time left of the pck */
 		printf("\r%d  ", nlist);
 		fflush(stdout);
+
 		/*
 		 * SELECT -------------------------------------------------
 		 */
@@ -159,7 +165,7 @@ int main(int argc, char *argv[]){
 
 		if (retsel == -1){
 			 perror("select()");
-			 exit(1);
+			 exit(EXIT_FAILURE);
 		}
 		else if (retsel) {
 
@@ -171,11 +177,10 @@ int main(int argc, char *argv[]){
 				nread = readn(tcp_sock, (char*)buf_p.body, BODYSIZE, NULL );
 
 				if(nread == 0){
-					printf("La connessione TCP e' stata chiusa\n");
-					/* FAI QUALCOSA */
+					printf("\nLa connessione TCP e' stata chiusa\n");
+					/* Chiudo la connessione TCP */
 					close(tcp_sock);
 					tcp_sock = -1;
-					/*exit(1);*/
 				} else {
 
 					/*Creo l'header del pacchetto e invio il pacchetto come UDP*/
@@ -183,11 +188,10 @@ int main(int argc, char *argv[]){
 					buf_p.id = htonl(progressive_id);
 					buf_p.tipo = 'B';
 
-					writen( udp_sock, (char*)&buf_p, HEADERSIZE + nread, &to);
+					writen(udp_sock, (char*)&buf_p, HEADERSIZE + nread, &to);
 
 					buf_p.id = ntohl(buf_p.id);
 					aggiungi(&to_ack, buf_p, nread+HEADERSIZE);
-					/*stampalista(&to_ack);*/
 				}
 			}
 			if(FD_ISSET(udp_sock, &rfds)){
@@ -200,6 +204,13 @@ int main(int argc, char *argv[]){
 				if(buf_p.tipo == 'B'){
 					buf_p.id = ntohl(buf_p.id);
 					buf_l = rimuovi(&to_ack, buf_p.id);
+
+					if(buf_p.id == 0 && tcp_sock == -1 && nlist == 0){
+						printf("\nACK chiusura, terminazione.\n");
+						writen(udp_sock, (char*)&buf_p, HEADERSIZE + 1, &to);
+						close(udp_sock);
+						exit(EXIT_SUCCESS);
+					}
 				}
 				/* se ho ricevuto un ICMP */
 				if(buf_p.tipo == 'I'){

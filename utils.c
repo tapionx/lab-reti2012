@@ -11,7 +11,7 @@
 
 #include "utils.h"
 
-/* -------- Sottrarre TIMEVAL ----------------------
+/* ---------------------- Sottrarre TIMEVAL --------------------------
  * http://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
  */
 
@@ -154,10 +154,9 @@ int get_socket(int type){
      * SOCK_DGRAM  = UDP
      */
    int socketfd;
-    printf ("socket()\n");
-    socketfd = socket(AF_INET, type, 0);
+   socketfd = socket(AF_INET, type, 0);
     if (socketfd == -1) {
-        printf ("socket() failed, Err: %d \"%s\"\n", errno,strerror(errno));
+        printf ("socket() fallita, Err: %d \"%s\"\n", errno,strerror(errno));
         exit(1);
     }
     return socketfd;
@@ -167,10 +166,9 @@ void sock_opt_reuseaddr(int socketfd){
     /* avoid EADDRINUSE error on bind() */
     int OptVal = 1;
     int ris;
-    printf ("setsockopt()\n");
     ris = setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, (char *)&OptVal, sizeof(OptVal));
     if (ris == -1) {
-        printf ("setsockopt() SO_REUSEADDR failed, Err: %d \"%s\"\n", errno,strerror(errno));
+        printf ("setsockopt() SO_REUSEADDR fallita, Err: %d \"%s\"\n", errno,strerror(errno));
         exit(1);
     }
 }
@@ -188,10 +186,9 @@ void name_socket(struct sockaddr_in *opt, uint32_t ip_address, uint16_t port){
 
 void sock_bind(int socketfd, struct sockaddr_in* Local){
     int ris;
-    printf ("bind()\n");
     ris = bind(socketfd, (struct sockaddr*) Local, sizeof(*Local));
     if (ris == -1)  {
-        printf ("bind() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        printf ("bind() fallita, Err: %d \"%s\"\n",errno,strerror(errno));
         exit(1);
     }
 }
@@ -199,20 +196,18 @@ void sock_bind(int socketfd, struct sockaddr_in* Local){
 void sock_connect(int sock, struct sockaddr_in *opt){
     /* connection request */
     int ris;
-    printf ("connect()\n");
     ris = connect(sock, (struct sockaddr*) opt, sizeof(*opt));
     if (ris == -1)  {
-        printf ("connect() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        printf ("connect() fallita, Err: %d \"%s\"\n",errno,strerror(errno));
         exit(1);
     }
 }
 
 void sock_listen(int sock){
     int ris;
-    printf ("listen()\n");
     ris = listen(sock, 10 );
     if (ris == -1) {
-        printf ("listen() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        printf ("listen() fallita, Err: %d \"%s\"\n",errno,strerror(errno));
         exit(1);
     }
 }
@@ -222,10 +217,9 @@ int sock_accept(int socketfd, struct sockaddr_in *opt){
     memset (opt, 0, sizeof(*opt) );
     /* wait for connection request */
     len=sizeof(*opt);
-    printf ("accept()\n");
     newsocketfd = accept(socketfd, (struct sockaddr*) opt, (socklen_t *)&len);
     if (newsocketfd == -1)  {
-        printf ("accept() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+        printf ("accept() fallita, Err: %d \"%s\"\n",errno,strerror(errno));
         exit(1);
     }
     return newsocketfd;
@@ -248,7 +242,7 @@ int TCP_connection_send(const char *remote_ip, int remote_port){
 
     sock_connect(tcp_sock, &server);
 
-    printf ("connessione avvenuta\n");
+    printf ("Connessione avvenuta\n");
     fflush(stdout);
 
     return tcp_sock;
@@ -275,7 +269,7 @@ int TCP_connection_recv(int local_port) {
 
     newsocketfd = sock_accept(sock, &Cli);
 
-    printf("connection from %s : %d\n",
+    printf("Connessione da %s : %d\n",
 		inet_ntoa(Cli.sin_addr),
 		ntohs(Cli.sin_port)
     );
@@ -316,7 +310,7 @@ ssize_t readn (int fd, char *buf, size_t n, struct sockaddr_in *from){
 		if ( nread < 0) {
 			if (errno != EINTR){
 				/*return(-1);*/   /* restituisco errore */
-				printf ("recvfrom() failed, Err: %d \"%s\"\n",
+				printf ("recvfrom() fallita, Err: %d \"%s\"\n",
 					    errno,
 					    strerror(errno)
 					   );
@@ -349,7 +343,7 @@ void writen (int fd, char *buf, size_t n, struct sockaddr_in *to){
 				nwritten = 0;   /* and call write() again*/
 			else {
 				/*return(-1);*/       /* error */
-				printf ("recvfrom() failed, Err: %d \"%s\"\n",
+				printf ("recvfrom() fallita, Err: %d \"%s\"\n",
 					    errno,
 					    strerror(errno)
 					   );
