@@ -1,7 +1,10 @@
 /*
- * proxyreceiver.c
+ * 	proxyreceiver.c : usando datagram UDP simula una connessione TCP
+ * 	attraverso un programma ritardatore che scarta i pacchetti in modo
+ * 	casuale, simulando una rete reale
  */
 
+/* file di header */
 #include <stdio.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -17,11 +20,14 @@
 #include <sys/time.h>
 #include <sys/select.h>
 
+/* file di header del progetto */
 #include "utils.h"
-
 
 int main(int argc, char *argv[]){
 
+	/* variabile globale che contiene il numero di elementi nella lista
+	 * viene tenuta aggiornata dalle funzioni di manipolazione delle
+	 * liste */
 	extern int nlist;
 
 	int arrivata_terminazione = 0;
