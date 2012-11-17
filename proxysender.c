@@ -116,7 +116,7 @@ int main(int argc, char *argv[]){
 	 * iniziale generico */
 	tcp_sock = TCP_connection_recv(local_port_tcp);
 
-	/* calcolo NDFS per la select() */
+	/* calcolo NFDS: indica il range dei files descriptors a cui siamo interessati per la select() */
 	fdmax = (udp_sock > tcp_sock)? udp_sock+1 : tcp_sock+1;
 
 	/* il programma consiste in un ciclo infinito */
