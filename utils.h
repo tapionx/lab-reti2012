@@ -1,6 +1,6 @@
 #define BUFSIZE 50
 
-#define MAXSIZE 65000/*65536*/
+#define MAXSIZE 6500 /*65536*/
 
 #define HEADERSIZE 5
 
@@ -13,20 +13,20 @@ typedef struct packet{
 	uint32_t id;
 	char tipo;
 	char body[BODYSIZE];
-} packet;
+} __attribute__((packed)) packet;
 
 typedef struct ICMP{
 	uint32_t id;
 	char tipo;
 	uint32_t idpck;
-} ICMP;
+} __attribute__((packed)) ICMP;
 
 typedef struct lista{
     struct lista* next;
     packet p;
     struct timeval sentime;
     int size;
-} lista;
+} __attribute__((packed)) lista;
 
 int timeval_subtract (struct timeval *result,
 				      struct timeval *x,

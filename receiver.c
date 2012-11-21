@@ -28,6 +28,9 @@ int main(int argc, char *argv[])
     int socketfd;
     char buf[BUFSIZE];
 
+	int a;
+	int b=0;
+
     char local_filename[100];
 
     /*int dest_file;*/
@@ -35,13 +38,15 @@ int main(int argc, char *argv[])
     /*ssize_t nwrite = 0;*/
     ssize_t nread  = 0;
 
+/*
     if(argc != 2) {
         printf ("necessari 2 parametri: FILE_NAME\n");
         exit(1);
 	}
-
+*/
+/*
     strncpy(local_filename, argv[1], 99);
-
+*/
     local_port_number = 64000;
 
     /* Open the file to write */
@@ -56,19 +61,15 @@ int main(int argc, char *argv[])
     socketfd = TCP_connection_recv(local_port_number);
 
     /* Transfer data */
-    while( (nread=read(socketfd, buf, BUFSIZE )) >0) {
+    while( (nread=read(socketfd, buf, 4 )) > 0) {
 
-		printf ("read(): %d byte\n%s\n", nread,buf);
-
-        /*nwrite = write(dest_file, buf, nread);
-
-        printf("write(): %d byte\n", nwrite);
-
-        if(nwrite == -1){
-            printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
-            exit(1);
-        }
-        * */
+		if(nread>1 && atoi(buf)!=0){
+			a = atoi(buf);
+			if(a!=b)
+				printf("ALKSDJALJHSDAKJHDK\n");
+			b++;
+			printf ("%d   %d\n", atoi(buf), nread);
+		}
  		memset(buf, 0, sizeof(buf));
     }
 

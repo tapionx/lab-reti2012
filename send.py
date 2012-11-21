@@ -12,7 +12,7 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.connect((HOST, PORT))
 
 for i in range(1,1000):
-	sock.sendall(str(i) + "\n")
+	sock.send(str(i) + "\n")
 	print i
 
 time.sleep(20)

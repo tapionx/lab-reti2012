@@ -34,8 +34,12 @@ int main(int argc, char *argv[])
 
     int to_transfer;
 
-	remote_port_number = 59000;
+	int i = 0;
 
+	remote_port_number = 59000;
+	strcpy(string_remote_ip_address, "127.0.0.1");
+
+    /*
     if(argc!=3) {
         printf ("necessari 3 parametrii: REMOTE_IP FILE\n");
         exit(1);
@@ -43,24 +47,28 @@ int main(int argc, char *argv[])
         strncpy(string_remote_ip_address, argv[1], 99);
         strncpy(filename, argv[2], 99);
     }
+    */
 
     /* Open the file to be transfered in READ MODE */
+    /*
     to_transfer = open(filename, O_RDONLY);
     if (to_transfer == -1) {
         printf("open() failed, Err: %d \"%s\"\n",errno,strerror(errno));
         exit(1);
     }
+	*/
 
     socketfd = TCP_connection_send(string_remote_ip_address, remote_port_number);
 
-    printf("inizio trasferimento file\n");
 
     /* Trasferimento del file */
-    while( (nread = read(to_transfer, buf, BUFSIZE)) > 0) {
+    for(i=0;i<=100;i++){
 
-        printf("%s\n", buf);
+        printf("%d\n", i);
 
-		nwrite = write(socketfd, buf, nread);
+		sprintf(buf, "%d\n", i);
+
+		nwrite = write(socketfd, buf, strlen(buf)+1);
 
 		if (nwrite == -1){
 			printf ("write() failed, Err: %d \"%s\"\n",errno,strerror(errno));
@@ -68,16 +76,8 @@ int main(int argc, char *argv[])
    		}
 	}
 
-	if (nread == -1){
-		 printf ("read() failed, Err: %d \"%s\"\n",errno,strerror(errno));
-         exit(1);
-	} else {
-		printf ("Trasferimento completato\n");
-	}
-
     /* chiusura */
     close(socketfd);
-	close(to_transfer);
 
     printf("Connessione TCP chiusa\n");
 

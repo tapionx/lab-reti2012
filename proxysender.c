@@ -7,20 +7,19 @@
 /* File di header */
 #include <stdio.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <errno.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+
 #include <sys/select.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <unistd.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 /* File di header del progetto */
 #include "utils.h"
@@ -97,10 +96,7 @@ int main(int argc, char *argv[]){
 		rit_port[1] = rit_port[0]+1;
 		rit_port[2] = rit_port[1]+1;
 
-	printf("IP ritardatore: %s \
-					local TCP port: %d \
-					local UDP port: %d \
-					porta ritardatore: %d \n",
+	printf("IP ritardatore: %s\nlocal TCP port: %d\nlocal UDP port: %d\nporta ritardatore: %d\n",
 				 remote_ip,
 				 local_port_tcp,
 				 local_port_udp,
