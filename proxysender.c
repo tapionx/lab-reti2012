@@ -36,6 +36,7 @@ int main(int argc, char *argv[]){
 	int local_port_tcp = 0;
 	int local_port_udp = 0;
 	int rit_port[3];
+	uint16_t porte_rit[3];
 	int rit_turno = 0;
 
 	struct sockaddr_in to, from;
@@ -44,6 +45,7 @@ int main(int argc, char *argv[]){
 	lista  buf_l;
 
 	char remote_ip[16];
+	in_addr_t ip_ritardatore;
 
 	uint32_t progressive_id = 0;
 
@@ -57,9 +59,9 @@ int main(int argc, char *argv[]){
 
 	/* elemento sentinella della lista dei pacchetti che
 	 * devono ricevere ACK */
-  lista to_ack;
-  /* la lista viene inizializzata come vuota */
-  to_ack.next = NULL;
+	lista to_ack;
+	/* la lista viene inizializzata come vuota */
+	to_ack.next = NULL;
 
 	/* il timeout viene definito nel file di header "utils.h" */
 	timeout.tv_sec  = TIMEOUT;
@@ -95,6 +97,13 @@ int main(int argc, char *argv[]){
 
 		rit_port[1] = rit_port[0]+1;
 		rit_port[2] = rit_port[1]+1;
+
+	/* Variabili copiate nell'endianess di rete per migliorare le
+	 * prestazioni quando vengono filtrati i pacchetti in ingresso */
+	ip_ritardatore = inet_addr(remote_ip);
+	porte_rit[0] = htons(rit_port[0]);
+	porte_rit[1] = htons(rit_port[1]);
+	porte_rit[2] = htons(rit_port[2]);
 
 	printf("IP ritardatore: %s\nlocal TCP port: %d\nlocal UDP port: %d\nporta ritardatore: %d\n",
 				 remote_ip,
@@ -187,10 +196,10 @@ int main(int argc, char *argv[]){
 			/* se è stato il socket TCP a svegliare dalla select
 			 * significa che ci sono dati disponibili da parte del sender */
 			if(FD_ISSET(tcp_sock, &rfds)){
-
 				/* lettura dei dati dal sender */
 				nread = readn(tcp_sock, (char*)buf_p.body, BODYSIZE, NULL );
-
+				/* NEL CASO DEL TCP SIAMO SICURI CHE IL MESSAGGIO
+				 * PROVENGA DAL SENDER */
 				/* se non viene letto nulla, significa che il sender ha chiuso
 				 * la connessione, quindi ha terminato di inviare dati */
 				if(nread == 0){
@@ -226,33 +235,44 @@ int main(int argc, char *argv[]){
 				/* lettura dei dati UDP */
 				nread = readn( udp_sock, (char*)&buf_p, MAXSIZE, &from);
 
-				/* se viene ricevuto un ACK viene rimosso il rispettivo
-				 * pacchetto dalla lista */
-				if(buf_p.tipo == 'B'){
-					buf_p.id = ntohl(buf_p.id);
-					buf_l = rimuovi(&to_ack, buf_p.id);
+				/* printf("ricevuto da %s %d\n", inet_ntoa(from.sin_addr), ntohs(from.sin_port)); */
+				/* se il pacchetto non proviene dal ritardatore,
+				 * viene scartato */
+				if(from.sin_addr.s_addr == ip_ritardatore &&
+				    (   from.sin_port == porte_rit[0]
+				     || from.sin_port == porte_rit[1]
+				     || from.sin_port == porte_rit[2])){
 
-					/* se viene ricevuto un ACK del segnale di terminazione
-					 * posso chiudere il programmma */
-					if(buf_p.id == 0 && tcp_sock == -1 && nlist == 0){
-						printf("\nACK chiusura, terminazione.\n");
-						writen(udp_sock, (char*)&buf_p, HEADERSIZE + 1, &to);
-						close(udp_sock);
-						exit(EXIT_SUCCESS);
+					/* se viene ricevuto un ACK viene rimosso il rispettivo
+					 * pacchetto dalla lista */
+					if(buf_p.tipo == 'B'){
+						buf_p.id = ntohl(buf_p.id);
+						buf_l = rimuovi(&to_ack, buf_p.id);
+
+						/* se viene ricevuto un ACK del segnale di terminazione
+						 * posso chiudere il programmma */
+						if(buf_p.id == 0 && tcp_sock == -1 && nlist == 0){
+							printf("\nACK chiusura, terminazione.\n");
+							writen(udp_sock, (char*)&buf_p, HEADERSIZE + 1, &to);
+							close(udp_sock);
+							exit(EXIT_SUCCESS);
+						}
 					}
-				}
-				/* se viene ricevuto un ICMP il pacchetto corrispondente
-				 * deve essere rimosso dalla lista, inviato di nuovo e inserito
-				 * in coda alla lista */
-				if(buf_p.tipo == 'I'){
-					buf_l = rimuovi(&to_ack, ((ICMP*)&buf_p)->idpck);
-					/* se il pacchetto non è presente nella lista ignoro l'ICMP */
-					if(buf_l.p.tipo != 'E'){
-						buf_l.p.id = htonl(buf_l.p.id);
-						writen( udp_sock, (char*)&buf_l.p, buf_l.size, &to);
-						buf_l.p.id = ntohl(buf_l.p.id);
-						aggiungi(&to_ack, buf_l.p, buf_l.size);
+					/* se viene ricevuto un ICMP il pacchetto corrispondente
+					 * deve essere rimosso dalla lista, inviato di nuovo e inserito
+					 * in coda alla lista */
+					if(buf_p.tipo == 'I'){
+						buf_l = rimuovi(&to_ack, ((ICMP*)&buf_p)->idpck);
+						/* se il pacchetto non è presente nella lista ignoro l'ICMP */
+						if(buf_l.p.tipo != 'E'){
+							buf_l.p.id = htonl(buf_l.p.id);
+							writen( udp_sock, (char*)&buf_l.p, buf_l.size, &to);
+							buf_l.p.id = ntohl(buf_l.p.id);
+							aggiungi(&to_ack, buf_l.p, buf_l.size);
+						}
 					}
+				} else {
+					printf("ricevuto datagram UDP estraneo, scarto.\n");
 				}
 			}
 		} else {

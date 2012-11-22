@@ -343,7 +343,7 @@ ssize_t readn (int fd, char *buf, size_t n, struct sockaddr_in *from){
 	if(from == NULL)
 		len = 0;
 	else
-		len = sizeof(from);
+		len = sizeof(struct sockaddr_in);
 	while (1) {
 		nread = recvfrom( fd,
 						  buf+n-nleft,
@@ -362,9 +362,9 @@ ssize_t readn (int fd, char *buf, size_t n, struct sockaddr_in *from){
 					   );
 				exit(1);
 			}
-		}
-		else
+		} else {
 			return( n - nleft);
+		}
 
 	}
 	return( n - nleft);  /* return >= 0 */

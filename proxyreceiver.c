@@ -43,6 +43,8 @@ int main(int argc, char *argv[]){
 	packet buf;
 	char remote_ip[40];
 	char ritardatore_ip[40];
+	uint16_t porte_ritardatore[3];
+	in_addr_t ip_ritardatore;
 
 	/* una lista ordinata che contiene i pacchetti da spedire al
 	   receiver */
@@ -78,12 +80,27 @@ int main(int argc, char *argv[]){
 		remote_port = atoi(argv[4]);
 	else
 		remote_port = 64000;
+	/* prima porta del ritardatore latoreceiver, serve solo per
+	 * filtrare i pacchetti estranei */
+	if(argc > 5)
+		porte_ritardatore[0] = htons(atoi(argv[5]));
+	else
+		porte_ritardatore[0] = htons(62000);
+
+	porte_ritardatore[1] = htons(ntohs(porte_ritardatore[0])+1);
+	porte_ritardatore[2] = htons(ntohs(porte_ritardatore[1])+1);
+
+	/* copia dell'ip del ritardatore in endianess di rete per
+	 * migliori performance durante il filtraggio */
 	/* stampa dei parametri utilizzati */
-	printf("IP receiver: %s\nIP ritardatore: %s\nlocal UDP port: %d\nsender TCP port: %d\n",
+	ip_ritardatore = inet_addr(ritardatore_ip);
+
+	printf("IP receiver: %s\nIP ritardatore: %s\nporta proxyreceiver: %d\nporta receiver: %d\nprima porta ritardatore: %d\n",
     	   remote_ip,
     	   ritardatore_ip,
 		   local_port,
-		   remote_port
+		   remote_port,
+		   ntohs(porte_ritardatore[0])
 		  );
 
 	/* inizializzazione del socket UDP */
@@ -126,73 +143,82 @@ int main(int argc, char *argv[]){
 		/* leggo un datagram UDP dal Ritardatore */
 		nread = readn(udp_sock, (char*)&buf, MAXSIZE, &from);
 
-		/* se si tratta di un pacchetto "Body" */
-		if(buf.tipo == 'B'){
-			/* se ha id=0 è un pacchetto di terminazione */
-			if(ntohl(buf.id) == 0){
-				/* se è il primo pacchetto accendo il flag dedicato */
-				if(arrivata_terminazione == 0){
-					arrivata_terminazione = 1;
-					printf("\nArrivata terminazione\n");
-				/* se è il secondo pacchetto di terminazione, il
-				 * protocollo di chiusura è completo perchè il
-				 * proxysender è stato informato della terminazione
-				 * quindi viene chiuso il programma e i socket*/
-				} else {
-					printf("\nArrivato ACK, terminazione.\n");
-					close(udp_sock);
-					close(tcp_sock);
-					exit(EXIT_SUCCESS);
+		/* se il pacchetto non proviene dal ritardatore viene ignoro */
+		if(from.sin_addr.s_addr == ip_ritardatore &&
+		   (from.sin_port == porte_ritardatore[0] ||
+		    from.sin_port == porte_ritardatore[1] ||
+		    from.sin_port == porte_ritardatore[2])){
+
+			/* se si tratta di un pacchetto "Body" */
+			if(buf.tipo == 'B'){
+				/* se ha id=0 è un pacchetto di terminazione */
+				if(ntohl(buf.id) == 0){
+					/* se è il primo pacchetto accendo il flag dedicato */
+					if(arrivata_terminazione == 0){
+						arrivata_terminazione = 1;
+						printf("\nArrivata terminazione\n");
+					/* se è il secondo pacchetto di terminazione, il
+					 * protocollo di chiusura è completo perchè il
+					 * proxysender è stato informato della terminazione
+					 * quindi viene chiuso il programma e i socket*/
+					} else {
+						printf("\nArrivato ACK, terminazione.\n");
+						close(udp_sock);
+						close(tcp_sock);
+						exit(EXIT_SUCCESS);
+					}
+				}
+
+				/* Imposto la destinazione dell'ACK
+				 * inviandolo sullo stesso canale dal quale è arrivato
+				 * l'udp perchè probabilmente non è in BURST */
+				name_socket(&to, inet_addr(ritardatore_ip), ntohs(from.sin_port));
+
+				/* invio ACK del pacchetto ricevuto */
+				writen(udp_sock, (char*)&buf, HEADERSIZE+1, &to);
+
+				/* solo se il pacchetto ricevuto ha un ID >= del primo ID
+				 * della lista, e quindi deve essere ancora inviato,
+				 * lo aggiungo alla lista dei pacchetti da inviare */
+				if(ntohl(buf.id) >= id_to_wait){
+					buf.id = ntohl(buf.id);
+					aggiungi_in_ordine(&to_send, buf, nread-HEADERSIZE);
+					printf("\r%d  ", nlist);
+					fflush(stdout);
+				}
+
+				/* se il datagram appena arrivato ha permesso l'invio di
+				 * altri pacchetti in ordine al receiver, li rimuovo dalla
+				 * lista e li invio in TCP */
+				while( to_send.next != NULL && to_send.next->p.id == id_to_wait){
+					/* azzero i buffer */
+					memset(&buf_l, 0, sizeof(lista));
+					memset(&buf_l.p, 0, sizeof(packet));
+					/* rimuovo il pacchetto in testa alla lista */
+					buf_l = pop(&to_send);
+					/* invio il pacchetto in TCP al receiver, senza header*/
+					writen( tcp_sock,
+							buf_l.p.body,
+							buf_l.size,
+							NULL
+						   );
+					id_to_wait++;
+					/* DEBUG: stampo il numero di pacchetti nella lista */
+					printf("\r%d  ", nlist);
+					fflush(stdout);
 				}
 			}
-
-			/* Imposto la destinazione dell'ACK
-			 * inviandolo sullo stesso canale dal quale è arrivato
-			 * l'udp perchè probabilmente non è in BURST */
-			name_socket(&to, inet_addr(ritardatore_ip), ntohs(from.sin_port));
-
-			/* invio ACK del pacchetto ricevuto */
-			writen(udp_sock, (char*)&buf, HEADERSIZE+1, &to);
-
-			/* solo se il pacchetto ricevuto ha un ID >= del primo ID
-			 * della lista, e quindi deve essere ancora inviato,
-			 * lo aggiungo alla lista dei pacchetti da inviare */
-			if(ntohl(buf.id) >= id_to_wait){
-				buf.id = ntohl(buf.id);
-				aggiungi_in_ordine(&to_send, buf, nread-HEADERSIZE);
-				printf("\r%d  ", nlist);
-				fflush(stdout);
+			/* se il datagram UDP ricevuto è di tipo ICMP
+			 * significa che l'ACK appena inviato è stato scartato,
+			 * quindi viene ricostruito a partire dall'id contenuto nell'
+			 * ICMP e inviato nuovamente */
+			if(buf.tipo == 'I') {
+				buf.id = ((ICMP*)&buf)->idpck;
+				buf.tipo = 'B';
+				writen(udp_sock, (char*)&buf, HEADERSIZE+1, &to);
 			}
-
-			/* se il datagram appena arrivato ha permesso l'invio di
-			 * altri pacchetti in ordine al receiver, li rimuovo dalla
-			 * lista e li invio in TCP */
-			while( to_send.next != NULL && to_send.next->p.id == id_to_wait){
-				/* azzero i buffer */
-				memset(&buf_l, 0, sizeof(lista));
-				memset(&buf_l.p, 0, sizeof(packet));
-				/* rimuovo il pacchetto in testa alla lista */
-				buf_l = pop(&to_send);
-				/* invio il pacchetto in TCP al receiver, senza header*/
-				writen( tcp_sock,
-				    	buf_l.p.body,
-						buf_l.size,
-						NULL
-					   );
-				id_to_wait++;
-				/* DEBUG: stampo il numero di pacchetti nella lista */
-				printf("\r%d  ", nlist);
-				fflush(stdout);
-			}
-		}
-		/* se il datagram UDP ricevuto è di tipo ICMP
-		 * significa che l'ACK appena inviato è stato scartato,
-		 * quindi viene ricostruito a partire dall'id contenuto nell'
-		 * ICMP e inviato nuovamente */
-		if(buf.tipo == 'I') {
-			buf.id = ((ICMP*)&buf)->idpck;
-			buf.tipo = 'B';
-			writen(udp_sock, (char*)&buf, HEADERSIZE+1, &to);
+		} else {
+			printf("ricevuto pacchetto UDP estraneo, scarto.\n");
 		}
 	}
 	/* l'esecuzione non raggiunge mai questo punto del codice */
