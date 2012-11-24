@@ -132,6 +132,7 @@ int main(int argc, char *argv[]){
 		if( tcp_sock == -1 && nlist == 0){
 			buf_p.id = 0;
 			buf_p.tipo = 'B';
+			buf_p.body[0] = '1';
 			writen(udp_sock, (char*)&buf_p, HEADERSIZE+1, &to);
 			aggiungi(&to_ack, buf_p, HEADERSIZE + 1);
 			printf("\nTutti i pacchetti inviati, inviato segnale di chiusura\n");
@@ -253,6 +254,8 @@ int main(int argc, char *argv[]){
 						 * posso chiudere il programmma */
 						if(buf_p.id == 0 && tcp_sock == -1 && nlist == 0){
 							printf("\nACK chiusura, terminazione.\n");
+							/* Invio ACK finale al proxyreceiver */
+							buf_p.body[0] = '2';
 							writen(udp_sock, (char*)&buf_p, HEADERSIZE + 1, &to);
 							close(udp_sock);
 							exit(EXIT_SUCCESS);

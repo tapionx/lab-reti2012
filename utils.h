@@ -1,5 +1,5 @@
 /* la dimensione massima dei pacchetti */
-#define MAXSIZE 6500 /*65536*/
+#define MAXSIZE 65500 /*65536*/
 
 /* la dimensione in byte dell'header dei datagram UDP */
 #define HEADERSIZE 5

@@ -115,14 +115,14 @@ int main(int argc, char *argv[]){
 	 * determinati datagram UDP */
 	while(1) {
 		/* se è stato ricevuto il datagram di terminazione attendo
-		 * 5 secondi per ulteriori pacchetti, nel caso in cui il
+		 * 6 secondi per ulteriori pacchetti, nel caso in cui il
 		 * proxysender non avesse ricevuto l'ACK di terminazione.
 		 * Se durante 5 secondi ricevo l'ACK finale termino, oppure se
 		 * passano 5 secondi senza ricevere datagram */
 		if(arrivata_terminazione && nlist == 0){
 			FD_ZERO(&rfds);
             FD_SET(udp_sock, &rfds);
-            tv.tv_sec = 5;
+            tv.tv_sec = 6;
 			tv.tv_usec = 0;
 			retval = select(udp_sock+1, &rfds, NULL, NULL, &tv);
 			if (retval == -1)
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]){
 		/* leggo un datagram UDP dal Ritardatore */
 		nread = readn(udp_sock, (char*)&buf, MAXSIZE, &from);
 
-		/* se il pacchetto non proviene dal ritardatore viene ignoro */
+		/* se il pacchetto non proviene dal ritardatore viene scartato*/
 		if(from.sin_addr.s_addr == ip_ritardatore &&
 		   (from.sin_port == porte_ritardatore[0] ||
 		    from.sin_port == porte_ritardatore[1] ||
@@ -152,21 +152,19 @@ int main(int argc, char *argv[]){
 			/* se si tratta di un pacchetto "Body" */
 			if(buf.tipo == 'B'){
 				/* se ha id=0 è un pacchetto di terminazione */
-				if(ntohl(buf.id) == 0){
-					/* se è il primo pacchetto accendo il flag dedicato */
-					if(arrivata_terminazione == 0){
-						arrivata_terminazione = 1;
-						printf("\nArrivata terminazione\n");
+				if(ntohl(buf.id) == 0 && buf.body[0] == '1' && !arrivata_terminazione){
+					arrivata_terminazione = 1;
+					printf("\nArrivata terminazione\n");
+				}
+				if(ntohl(buf.id) == 0 && buf.body[0] == '2' && arrivata_terminazione){
 					/* se è il secondo pacchetto di terminazione, il
 					 * protocollo di chiusura è completo perchè il
 					 * proxysender è stato informato della terminazione
 					 * quindi viene chiuso il programma e i socket*/
-					} else {
-						printf("\nArrivato ACK, terminazione.\n");
-						close(udp_sock);
-						close(tcp_sock);
-						exit(EXIT_SUCCESS);
-					}
+					printf("\nArrivato ACK, terminazione.\n");
+					close(udp_sock);
+					close(tcp_sock);
+					exit(EXIT_SUCCESS);
 				}
 
 				/* Imposto la destinazione dell'ACK
