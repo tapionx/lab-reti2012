@@ -122,7 +122,7 @@ int main(int argc, char *argv[]){
 		if(arrivata_terminazione && nlist == 0){
 			FD_ZERO(&rfds);
             FD_SET(udp_sock, &rfds);
-            tv.tv_sec = 6;
+            tv.tv_sec = CLOSETIMEOUT;
 			tv.tv_usec = 0;
 			retval = select(udp_sock+1, &rfds, NULL, NULL, &tv);
 			if (retval == -1)

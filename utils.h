@@ -11,6 +11,9 @@
 #define TIMEOUT 1   /* secondi */
 #define MSTIMEOUT 0 /* microsecondi */
 
+/* timeout di attesa della chiusura UDP da parte del proxyreceiver */
+#define CLOSETIMEOUT 5
+
 /* struttura del pacchetto UDP */
 typedef struct packet{
 	/* l'ID del paccheto, intero senza segno a 32 bit */
