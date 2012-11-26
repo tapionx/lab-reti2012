@@ -56,6 +56,9 @@ typedef struct lista{
 int timeval_subtract (struct timeval *result,
 				      struct timeval *x,
 				      struct timeval *y);
+
+int controlla_scadenza(struct timeval *p);
+
 /* variabile globale che contiene il numero di pacchetti contenuti
  * in una lista */
 int nlist;

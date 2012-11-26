@@ -54,8 +54,17 @@ int main(int argc, char *argv[]){
 	int retsel;
 	int fdmax;
 
+	/* contatori per le statistiche */
+	int quanti_timeout = 0;
+	int quanti_timeout_senza_select = 0;
+	int quanti_pacchetti_tcp = 0;
+	int quanti_datagram_inviati = 0;
+	int quanti_icmp = 0;
+	int quanti_ack = 0;
+	int overhead = 0;
+
 	/* per gestire il timeout dei pacchetti */
-	struct timeval timeout, curtime, towait;
+	struct timeval timeout;
 
 	/* elemento sentinella della lista dei pacchetti che
 	 * devono ricevere ACK */
@@ -133,6 +142,7 @@ int main(int argc, char *argv[]){
 			buf_p.id = 0;
 			buf_p.tipo = 'B';
 			buf_p.body[0] = '1';
+			quanti_datagram_inviati++;
 			writen(udp_sock, (char*)&buf_p, HEADERSIZE+1, &to);
 			aggiungi(&to_ack, buf_p, HEADERSIZE + 1);
 			printf("\nTutti i pacchetti inviati, inviato segnale di chiusura\n");
@@ -157,31 +167,29 @@ int main(int argc, char *argv[]){
 		memset(&buf_l, 0, sizeof(lista));
 		memset(&buf_p, 0, sizeof(packet));
 
+		while(1){
+			if(to_ack.next == NULL)
+				break;
+			timeout = to_ack.next->sentime;
+			if(controlla_scadenza(&timeout)){
+				quanti_timeout_senza_select++;
+				buf_l = pop(&(to_ack));
+				buf_l.p.id = htonl(buf_l.p.id);
+				writen( udp_sock, (char*)&buf_l.p, buf_l.size, &to);
+				buf_l.p.id = ntohl(buf_l.p.id);
+				aggiungi(&to_ack, buf_l.p, buf_l.size);
+			} else
+				break;
+		}
+
 		/* calcolo del timeout con cui chiamare la select:
 		 * dipende dal tempo di inserimento del primo pacchetto. */
 
 		/* se la lista è vuota, la select attende all'infinito */
-		if(to_ack.next == NULL){
+		if(to_ack.next == NULL)
 			retsel = select(fdmax, &rfds, NULL, NULL, NULL);
-		} else {
-			/* timestamp attuale */
-			if(gettimeofday(&(curtime), NULL)){
-				printf("gettimeofday() fallita, Err: %d \"%s\"\n",
-							 errno,
-							 strerror(errno)
-					  );
-				exit(EXIT_FAILURE);
-			}
-			/* calcolo del tempo di attesa del primo pacchetto della lista */
-			timeval_subtract(&curtime, &curtime, &(to_ack.next->sentime));
-			/* se il timer del pacchetto è scaduto la select si sveglierà
-			 * subito */
-			if(timeval_subtract(&towait, &timeout, &curtime)){
-				towait.tv_usec = 0;
-				towait.tv_sec = 0;
-			}
-		retsel = select(fdmax, &rfds, NULL, NULL, &towait);
-		}
+		else
+			retsel = select(fdmax, &rfds, NULL, NULL, &timeout);
 
 		/* se la select fallisce viene restituito errore */
 		if (retsel == -1){
@@ -197,6 +205,7 @@ int main(int argc, char *argv[]){
 			/* se è stato il socket TCP a svegliare dalla select
 			 * significa che ci sono dati disponibili da parte del sender */
 			if(FD_ISSET(tcp_sock, &rfds)){
+				quanti_pacchetti_tcp++;
 				/* lettura dei dati dal sender */
 				nread = readn(tcp_sock, (char*)buf_p.body, BODYSIZE, NULL );
 				/* NEL CASO DEL TCP SIAMO SICURI CHE IL MESSAGGIO
@@ -220,6 +229,7 @@ int main(int argc, char *argv[]){
 
 					/* invio del datagram UDP contenente l'header generato
 					 * e il body ricevuto dal sender */
+					quanti_datagram_inviati++;
 					writen(udp_sock, (char*)&buf_p, HEADERSIZE + nread, &to);
 
 					/* l'ID viene riconvertito nell'endianess della macchina
@@ -247,6 +257,7 @@ int main(int argc, char *argv[]){
 					/* se viene ricevuto un ACK viene rimosso il rispettivo
 					 * pacchetto dalla lista */
 					if(buf_p.tipo == 'B'){
+						quanti_ack++;
 						buf_p.id = ntohl(buf_p.id);
 						buf_l = rimuovi(&to_ack, buf_p.id);
 
@@ -258,6 +269,17 @@ int main(int argc, char *argv[]){
 							buf_p.body[0] = '2';
 							writen(udp_sock, (char*)&buf_p, HEADERSIZE + 1, &to);
 							close(udp_sock);
+							/* stampo le statistiche */
+							overhead = (quanti_datagram_inviati - quanti_pacchetti_tcp) * 100 / quanti_pacchetti_tcp;
+							printf("---- statistiche ----\ntimeout: %d\ntimeout senza select: %d\npacchetti tcp ricevuti: %d\ndatagram udp inviati: %d\nicmp: %d\nack: %d\noverhead: %d%%\n",
+								   quanti_timeout,
+								   quanti_timeout_senza_select,
+								   quanti_pacchetti_tcp,
+								   quanti_datagram_inviati,
+								   quanti_icmp,
+								   quanti_ack,
+								   overhead
+								  );
 							exit(EXIT_SUCCESS);
 						}
 					}
@@ -265,10 +287,12 @@ int main(int argc, char *argv[]){
 					 * deve essere rimosso dalla lista, inviato di nuovo e inserito
 					 * in coda alla lista */
 					if(buf_p.tipo == 'I'){
+						quanti_icmp++;
 						buf_l = rimuovi(&to_ack, ((ICMP*)&buf_p)->idpck);
 						/* se il pacchetto non è presente nella lista ignoro l'ICMP */
 						if(buf_l.p.tipo != 'E'){
 							buf_l.p.id = htonl(buf_l.p.id);
+							quanti_datagram_inviati++;
 							writen( udp_sock, (char*)&buf_l.p, buf_l.size, &to);
 							buf_l.p.id = ntohl(buf_l.p.id);
 							aggiungi(&to_ack, buf_l.p, buf_l.size);
@@ -282,8 +306,10 @@ int main(int argc, char *argv[]){
 			/* se la select viene terminata dopo il timeout specificato
 			 * bisogna inviare nuovamente il primo pacchetto della lista
 			 * e reinserirlo in coda */
+			quanti_timeout++;
 			buf_l = pop(&(to_ack));
 			buf_l.p.id = htonl(buf_l.p.id);
+			quanti_datagram_inviati++;
 			writen( udp_sock, (char*)&buf_l.p, buf_l.size, &to);
 			buf_l.p.id = ntohl(buf_l.p.id);
 			aggiungi(&to_ack, buf_l.p, buf_l.size);

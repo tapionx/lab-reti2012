@@ -15,6 +15,9 @@
  * http://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
  */
 
+/* CALCOLA X - Y
+ * ritorna 1 se il risultato è negativo */
+
 /* Subtract the `struct timeval' values X and Y,
 storing the result in RESULT.
 Return 1 if the difference is negative, otherwise 0. */
@@ -45,6 +48,25 @@ return x->tv_sec < y->tv_sec;
 
 /* quanti elementi nella lista */
 int nlist = 0;
+
+/* Controlla se un pacchetto del proxysender ha il timer scaduto */
+int controlla_scadenza(struct timeval *p){
+	struct timeval attuale, trascorso, timeout;
+	timeout.tv_sec  = TIMEOUT;
+	timeout.tv_usec = MSTIMEOUT;
+	/* prendo il tempo attuale */
+	if(gettimeofday(&(attuale), NULL)){
+		printf("gettimeofday() fallita, Err: %d \"%s\"\n",
+					 errno,
+					 strerror(errno)
+			  );
+		exit(EXIT_FAILURE);
+	}
+	/* calcolo il tempo trascorso */
+	timeval_subtract(&trascorso, &attuale, p);
+	/* controllo se il tempo rimanente supera il timer */
+	return timeval_subtract(p, &timeout, &trascorso);
+}
 
 /* -------- LISTE DINAMICHE con malloc() --------------*/
 /* funzione di debug che stampa il contenuto di una lista passata */
