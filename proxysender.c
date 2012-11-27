@@ -113,13 +113,12 @@ int main(int argc, char *argv[]){
 	porte_rit[1] = htons(rit_port[1]);
 	porte_rit[2] = htons(rit_port[2]);
 
-	printf("IP ritardatore: %s\nlocal TCP port: %d\nlocal UDP port: %d\nporta ritardatore: %d\n",
-				 remote_ip,
-				 local_port_tcp,
-				 local_port_udp,
-				 rit_port[0]
-				);
-	/********************************************************/
+	printf("IP ritardatore: %s\n", remote_ip);
+    printf("local TCP port: %d\n", local_port_tcp);
+    printf("local UDP port: %d\n", local_port_udp);
+    printf("prima porta ritardatore: %d\n", rit_port[0]);
+	
+    /********************************************************/
 
 	/* inizializzazione del socket UDP (utils.c) */
 	udp_sock = UDP_sock(local_port_udp);
@@ -129,7 +128,8 @@ int main(int argc, char *argv[]){
 	 * iniziale generico */
 	tcp_sock = TCP_connection_recv(local_port_tcp);
 
-	/* calcolo NFDS: indica il range dei files descriptors a cui siamo interessati per la select() */
+	/* calcolo NFDS: indica il range dei files descriptors a cui siamo 
+     * interessati per la select() */
 	fdmax = (udp_sock > tcp_sock)? udp_sock+1 : tcp_sock+1;
 
 	/* il programma consiste in un ciclo infinito */
@@ -144,11 +144,11 @@ int main(int argc, char *argv[]){
 			quanti_datagram_inviati++;
 			writen(udp_sock, (char*)&buf_p, HEADERSIZE+1, &to);
 			aggiungi(&to_ack, buf_p, HEADERSIZE + 1);
-			printf("\nTutti i pacchetti inviati, inviato segnale di chiusura\n");
+			printf("\nTutti i pacchetti inviati.\n");
 		}
 
 		/* debug: stampa quanti pacchetti ci sono nella lista */
-		printf("\r%d  ", nlist);
+		printf("\rpacchetti rimanenti: %d  ", nlist);
 		fflush(stdout);
 
 		/* incremento del turno della porta del ritardatore */
@@ -204,8 +204,8 @@ int main(int argc, char *argv[]){
 					printf("\nLa connessione TCP e' stata chiusa\n");
 					/* chiusura della connessione TCP */
 					close(tcp_sock);
-					/* il descrittore del socket viene impostato a -1 per avviare
-					 * le operazioni di chiusura del protocollo UDP */
+					/* il descrittore del socket viene impostato a -1 per 
+                     * avviare le operazioni di chiusura del protocollo UDP */
 					tcp_sock = -1;
 				} else {
 
@@ -221,8 +221,8 @@ int main(int argc, char *argv[]){
 					writen(udp_sock, (char*)&buf_p, HEADERSIZE + nread, &to);
 
 					/* l'ID viene riconvertito nell'endianess della macchina
-					 * e il pacchetto viene inserito nella lista dei datagram da
-					 * confermare con ACK. L'inserimento avviene in coda */
+					 * e il pacchetto viene inserito nella lista dei datagram 
+                     * da confermare con ACK. L'inserimento avviene in coda */
 					buf_p.id = ntohl(buf_p.id);
 					aggiungi(&to_ack, buf_p, nread+HEADERSIZE);
 				}
@@ -234,7 +234,6 @@ int main(int argc, char *argv[]){
 				/* lettura dei dati UDP */
 				nread = readn( udp_sock, (char*)&buf_p, MAXSIZE, &from);
 
-				/* printf("ricevuto da %s %d\n", inet_ntoa(from.sin_addr), ntohs(from.sin_port)); */
 				/* se il pacchetto non proviene dal ritardatore,
 				 * viene scartato */
 				if(from.sin_addr.s_addr == ip_ritardatore &&
@@ -258,14 +257,13 @@ int main(int argc, char *argv[]){
 							close(udp_sock);
 							/* stampo le statistiche */
 							overhead = (quanti_datagram_inviati - quanti_pacchetti_tcp) * 100 / quanti_pacchetti_tcp;
-							printf("---- statistiche ----\ntimeout: %d\npacchetti tcp ricevuti: %d\ndatagram udp inviati: %d\nicmp: %d\nack: %d\noverhead: %d%%\n",
-								   quanti_timeout,
-								   quanti_pacchetti_tcp,
-								   quanti_datagram_inviati,
-								   quanti_icmp,
-								   quanti_ack,
-								   overhead
-								  );
+							printf("---- statistiche ----\n");
+                            printf("timeout: %d\n", quanti_timeout);
+                            printf("pacchetti tcp ricevuti: %d\n", quanti_pacchetti_tcp);
+                            printf("datagram udp inviati: %d\n", quanti_datagram_inviati);
+                            printf("icmp: %d\n", quanti_icmp);
+                            printf("ack: %d\n", overhead);
+                            printf("overhead: %d%%\n", overhead);
 							exit(EXIT_SUCCESS);
 						}
 					}
@@ -275,11 +273,11 @@ int main(int argc, char *argv[]){
 					if(buf_p.tipo == 'I'){
 						quanti_icmp++;
 						buf_l = rimuovi(&to_ack, ((ICMP*)&buf_p)->idpck);
-						/* se il pacchetto non è presente nella lista ignoro l'ICMP */
+						/* se il pacchetto non è nella lista ignoro l'ICMP */
 						if(buf_l.p.tipo != 'E'){
 							buf_l.p.id = htonl(buf_l.p.id);
 							quanti_datagram_inviati++;
-							writen( udp_sock, (char*)&buf_l.p, buf_l.size, &to);
+							writen(udp_sock, (char*)&buf_l.p, buf_l.size, &to);
 							buf_l.p.id = ntohl(buf_l.p.id);
 							aggiungi(&to_ack, buf_l.p, buf_l.size);
 						}

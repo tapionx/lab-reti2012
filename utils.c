@@ -77,7 +77,6 @@ void stampalista(lista* sentinella){
     printf("[");
     while(cur != NULL){
         printf(" (%d - %d - %s) ",cur->p.id, cur->size, cur->p.body);
-        /*printf(" (%d|%c|%s - %d) ", cur->p.id, cur->p.tipo, cur->p.body, (int)cur->sentime.tv_sec);*/
         cur = cur->next;
     }
     printf("]\n");
@@ -100,7 +99,7 @@ void aggiungi( lista* sentinella, packet p, int size){
 	}
 	/* nel pacchetto inserito viene aggiunto il timestamp attuale */
 	if(gettimeofday(&(new->sentime), NULL)) {
-		printf ("gettimeofday() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+		printf ("gettimeofday() Err: %d \"%s\"\n",errno,strerror(errno));
         exit(1);
 	}
 	/* inserisco il pacchetto nella lista */
@@ -136,11 +135,16 @@ void aggiungi_in_ordine( lista* sentinella, packet p, int size){
 	/* il timestamp non viene inserito, perchè questa funzione è usata
 	 * solo dal proxyreceiver, che non utilizza il tempo dei pacchetti
 	 * in questo modo si incrementano le performance effettuando meno
-	 * system call
-	if(gettimeofday(&(new->sentime), NULL)) {
-		printf ("gettimeofday() failed, Err: %d \"%s\"\n",errno,strerror(errno));
+	 * system call */
+	/*
+    if(gettimeofday(&(new->sentime), NULL)) {
+		printf ("gettimeofday() failed, Err: %d \"%s\"\n",
+                 errno,
+                 strerror(errno)
+               );
         exit(1);
-	} */
+	} 
+    */
 	/* inserisco il pacchetto nella lista */
     memcpy(&(new->p), &p, sizeof(packet));
     /* aggiorno i puntatori in modo da mantenere la lista coerente */
@@ -222,9 +226,17 @@ void sock_opt_reuseaddr(int socketfd){
     /* avoid EADDRINUSE error on bind() */
     int OptVal = 1;
     int ris;
-    ris = setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, (char *)&OptVal, sizeof(OptVal));
+    ris = setsockopt(socketfd, 
+                     SOL_SOCKET, 
+                     SO_REUSEADDR, 
+                     (char *)&OptVal, 
+                     sizeof(OptVal)
+                    );
     if (ris == -1) {
-        printf ("setsockopt() SO_REUSEADDR fallita, Err: %d \"%s\"\n", errno,strerror(errno));
+        printf ("setsockopt() SO_REUSEADDR fallita, Err: %d \"%s\"\n", 
+                 errno,
+                 strerror(errno)
+               );
         exit(1);
     }
 }

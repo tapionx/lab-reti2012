@@ -95,13 +95,11 @@ int main(int argc, char *argv[]){
 	/* stampa dei parametri utilizzati */
 	ip_ritardatore = inet_addr(ritardatore_ip);
 
-	printf("IP receiver: %s\nIP ritardatore: %s\nporta proxyreceiver: %d\nporta receiver: %d\nprima porta ritardatore: %d\n",
-    	   remote_ip,
-    	   ritardatore_ip,
-		   local_port,
-		   remote_port,
-		   ntohs(porte_ritardatore[0])
-		  );
+	printf("IP receiver: %s\n", remote_ip);
+    printf("IP ritardatore: %s\n", ritardatore_ip);
+    printf("porta proxyreceiver: %d\n", local_port);
+    printf("porta receiver: %d\n", remote_port);
+    printf("prima porta ritardatore: %d\n", ntohs(porte_ritardatore[0]));
 
 	/* inizializzazione del socket UDP */
 	udp_sock = UDP_sock(local_port);
@@ -137,7 +135,7 @@ int main(int argc, char *argv[]){
 
 		/* DEBUG: stampo quanti pacchetti ci sono nella lista dei
 		 * pacchetti da inviare al receiver */
-		printf("\r%d  ", nlist);
+		printf("\rpacchetti rimanenti: %d  ", nlist);
 		fflush(stdout);
 
 		/* leggo un datagram UDP dal Ritardatore */
@@ -152,11 +150,15 @@ int main(int argc, char *argv[]){
 			/* se si tratta di un pacchetto "Body" */
 			if(buf.tipo == 'B'){
 				/* se ha id=0 è un pacchetto di terminazione */
-				if(ntohl(buf.id) == 0 && buf.body[0] == '1' && !arrivata_terminazione){
+				if(ntohl(buf.id) == 0 && 
+                   buf.body[0] == '1' && 
+                   !arrivata_terminazione){
 					arrivata_terminazione = 1;
 					printf("\nArrivata terminazione\n");
 				}
-				if(ntohl(buf.id) == 0 && buf.body[0] == '2' && arrivata_terminazione){
+				if(ntohl(buf.id) == 0 && 
+                   buf.body[0] == '2' && 
+                   arrivata_terminazione){
 					/* se è il secondo pacchetto di terminazione, il
 					 * protocollo di chiusura è completo perchè il
 					 * proxysender è stato informato della terminazione
@@ -170,7 +172,7 @@ int main(int argc, char *argv[]){
 				/* Imposto la destinazione dell'ACK
 				 * inviandolo sullo stesso canale dal quale è arrivato
 				 * l'udp perchè probabilmente non è in BURST */
-				name_socket(&to, inet_addr(ritardatore_ip), ntohs(from.sin_port));
+				name_socket(&to,inet_addr(ritardatore_ip),ntohs(from.sin_port));
 
 				/* invio ACK del pacchetto ricevuto */
 				writen(udp_sock, (char*)&buf, HEADERSIZE+1, &to);
@@ -181,14 +183,12 @@ int main(int argc, char *argv[]){
 				if(ntohl(buf.id) >= id_to_wait){
 					buf.id = ntohl(buf.id);
 					aggiungi_in_ordine(&to_send, buf, nread-HEADERSIZE);
-					printf("\r%d  ", nlist);
-					fflush(stdout);
 				}
 
 				/* se il datagram appena arrivato ha permesso l'invio di
 				 * altri pacchetti in ordine al receiver, li rimuovo dalla
 				 * lista e li invio in TCP */
-				while( to_send.next != NULL && to_send.next->p.id == id_to_wait){
+				while(to_send.next != NULL && to_send.next->p.id==id_to_wait){
 					/* azzero i buffer */
 					memset(&buf_l, 0, sizeof(lista));
 					memset(&buf_l.p, 0, sizeof(packet));
@@ -202,7 +202,7 @@ int main(int argc, char *argv[]){
 						   );
 					id_to_wait++;
 					/* DEBUG: stampo il numero di pacchetti nella lista */
-					printf("\r%d  ", nlist);
+					printf("\rpacchetti rimanenti: %d  ", nlist);
 					fflush(stdout);
 				}
 			}
