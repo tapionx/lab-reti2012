@@ -56,7 +56,6 @@ int main(int argc, char *argv[]){
 
 	/* contatori per le statistiche */
 	int quanti_timeout = 0;
-	int quanti_timeout_senza_select = 0;
 	int quanti_pacchetti_tcp = 0;
 	int quanti_datagram_inviati = 0;
 	int quanti_icmp = 0;
@@ -167,30 +166,19 @@ int main(int argc, char *argv[]){
 		memset(&buf_l, 0, sizeof(lista));
 		memset(&buf_p, 0, sizeof(packet));
 
-		while(1){
-			if(to_ack.next == NULL)
-				break;
-			timeout = to_ack.next->sentime;
-			if(controlla_scadenza(&timeout)){
-				quanti_timeout_senza_select++;
-				buf_l = pop(&(to_ack));
-				buf_l.p.id = htonl(buf_l.p.id);
-				writen( udp_sock, (char*)&buf_l.p, buf_l.size, &to);
-				buf_l.p.id = ntohl(buf_l.p.id);
-				aggiungi(&to_ack, buf_l.p, buf_l.size);
-			} else
-				break;
-		}
-
-		/* calcolo del timeout con cui chiamare la select:
-		 * dipende dal tempo di inserimento del primo pacchetto. */
-
 		/* se la lista è vuota, la select attende all'infinito */
 		if(to_ack.next == NULL)
 			retsel = select(fdmax, &rfds, NULL, NULL, NULL);
-		else
-			retsel = select(fdmax, &rfds, NULL, NULL, &timeout);
-
+		else {
+            /* calcolo del timeout con cui chiamare la select:
+             * dipende dal tempo di inserimento del primo pacchetto. */
+            timeout = to_ack.next->sentime;
+            if(controlla_scadenza(&timeout)){
+                timeout.tv_sec = 0;
+                timeout.tv_usec = 0;
+            }
+            retsel = select(fdmax, &rfds, NULL, NULL, &timeout);
+        }
 		/* se la select fallisce viene restituito errore */
 		if (retsel == -1){
 			printf("select() fallita, Err: %d \"%s\"\n",
@@ -260,7 +248,6 @@ int main(int argc, char *argv[]){
 						quanti_ack++;
 						buf_p.id = ntohl(buf_p.id);
 						buf_l = rimuovi(&to_ack, buf_p.id);
-
 						/* se viene ricevuto un ACK del segnale di terminazione
 						 * posso chiudere il programmma */
 						if(buf_p.id == 0 && tcp_sock == -1 && nlist == 0){
@@ -271,9 +258,8 @@ int main(int argc, char *argv[]){
 							close(udp_sock);
 							/* stampo le statistiche */
 							overhead = (quanti_datagram_inviati - quanti_pacchetti_tcp) * 100 / quanti_pacchetti_tcp;
-							printf("---- statistiche ----\ntimeout: %d\ntimeout senza select: %d\npacchetti tcp ricevuti: %d\ndatagram udp inviati: %d\nicmp: %d\nack: %d\noverhead: %d%%\n",
+							printf("---- statistiche ----\ntimeout: %d\npacchetti tcp ricevuti: %d\ndatagram udp inviati: %d\nicmp: %d\nack: %d\noverhead: %d%%\n",
 								   quanti_timeout,
-								   quanti_timeout_senza_select,
 								   quanti_pacchetti_tcp,
 								   quanti_datagram_inviati,
 								   quanti_icmp,

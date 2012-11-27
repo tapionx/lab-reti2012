@@ -52,6 +52,7 @@ int nlist = 0;
 /* Controlla se un pacchetto del proxysender ha il timer scaduto */
 int controlla_scadenza(struct timeval *p){
 	struct timeval attuale, trascorso, timeout;
+    int ret;
 	timeout.tv_sec  = TIMEOUT;
 	timeout.tv_usec = MSTIMEOUT;
 	/* prendo il tempo attuale */
@@ -65,7 +66,8 @@ int controlla_scadenza(struct timeval *p){
 	/* calcolo il tempo trascorso */
 	timeval_subtract(&trascorso, &attuale, p);
 	/* controllo se il tempo rimanente supera il timer */
-	return timeval_subtract(p, &timeout, &trascorso);
+	ret = timeval_subtract(p, &timeout, &trascorso);
+    return ret;
 }
 
 /* -------- LISTE DINAMICHE con malloc() --------------*/

@@ -8,8 +8,8 @@
 #define BODYSIZE (MAXSIZE) - (HEADERSIZE)
 
 /* il timeout della select del proxysender */
-#define TIMEOUT 1   /* secondi */
-#define MSTIMEOUT 0 /* microsecondi */
+#define TIMEOUT 0   /* secondi */
+#define MSTIMEOUT 800000 /* microsecondi */
 
 /* timeout di attesa della chiusura UDP da parte del proxyreceiver */
 #define CLOSETIMEOUT 5
