@@ -249,7 +249,7 @@ int main(int argc, char *argv[]){
 							printf("pacchetti tcp ricevuti: %d\n", quanti_pacchetti_tcp);
 							printf("datagram udp inviati: %d\n", quanti_datagram_inviati);
 							printf("icmp: %d\n", quanti_icmp);
-							printf("ack: %d\n", overhead);
+							printf("ack: %d\n", quanti_ack);
 							printf("overhead: %d%%\n", overhead);
 							exit(EXIT_SUCCESS);
 						}

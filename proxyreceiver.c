@@ -53,16 +53,16 @@ int main(int argc, char *argv[]){
  	 * nessun parametro è obbligatorio, infatti se un parametro non
 	 * viene fornito, viene utilizzato il valore di default */
 
-	/* IP del sender, default localhost */
-	if(argc > 1)
-		strcpy(remote_ip, argv[1]);
-	else
-		strcpy(remote_ip, "127.0.0.1");
 	/* IP del ritardatore, default localhost */
-	if(argc > 2)
-		strcpy(ritardatore_ip, argv[2]);
+	if(argc > 1)
+		strcpy(ritardatore_ip, argv[1]);
 	else
 		strcpy(ritardatore_ip, "127.0.0.1");
+	/* IP del sender, default localhost */
+	if(argc > 2)
+		strcpy(remote_ip, argv[2]);
+	else
+		strcpy(remote_ip, "127.0.0.1");
 	/* porta UDP del proxyreceiver, default 63000 */
 	if(argc > 3)
 		local_port = atoi(argv[3]);
@@ -88,8 +88,8 @@ int main(int argc, char *argv[]){
 	/* stampa dei parametri utilizzati */
 	ip_ritardatore = inet_addr(ritardatore_ip);
 
-	printf("IP receiver: %s\n", remote_ip);
     printf("IP ritardatore: %s\n", ritardatore_ip);
+	printf("IP receiver: %s\n", remote_ip);
     printf("porta proxyreceiver: %d\n", local_port);
     printf("porta receiver: %d\n", remote_port);
     printf("prima porta ritardatore: %d\n", ntohs(porte_ritardatore[0]));
