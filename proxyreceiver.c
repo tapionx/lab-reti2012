@@ -10,14 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <fcntl.h>
-
-#include <sys/time.h>
 #include <sys/select.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -115,8 +108,8 @@ int main(int argc, char *argv[]){
 		/* se è stato ricevuto il datagram di terminazione attendo
 		 * 6 secondi per ulteriori pacchetti, nel caso in cui il
 		 * proxysender non avesse ricevuto l'ACK di terminazione.
-		 * Se durante 5 secondi ricevo l'ACK finale termino, oppure se
-		 * passano 5 secondi senza ricevere datagram */
+		 * Se durante CLOSETIMEOUT secondi ricevo l'ACK finale termino, 
+		 * oppure se passano CLOSETIMEOUT secondi senza ricevere nulla*/
 		if(arrivata_terminazione && nlist == 0){
 			FD_ZERO(&rfds);
             FD_SET(udp_sock, &rfds);

@@ -6,19 +6,11 @@
 
 /* File di header */
 #include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <fcntl.h>
-
+#include <stdlib.h>
 #include <sys/select.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-
-#include <netinet/in.h>
+#include <unistd.h>
+#include <errno.h>
 #include <arpa/inet.h>
 
 /* File di header del progetto */
@@ -71,10 +63,6 @@ int main(int argc, char *argv[]){
 	/* la lista viene inizializzata come vuota */
 	to_ack.next = NULL;
 
-	/* il timeout viene definito nel file di header "utils.h" */
-	timeout.tv_sec  = TIMEOUT;
-	timeout.tv_usec = MSTIMEOUT;
-
 	/* recupero dei parametri da linea di comando.
 	 * nessun parametro è obbligatorio, infatti se un parametro non
 	 * viene fornito, viene utilizzato il valore di default */
@@ -83,7 +71,7 @@ int main(int argc, char *argv[]){
 	if(argc > 1)
 		strcpy(remote_ip, argv[1]);
 	else
-		strcpy(remote_ip,	"127.0.0.1");
+		strcpy(remote_ip, "127.0.0.1");
 
 	/* porta in ascolto del proxysender, default 59000 */
 	if(argc > 2)
@@ -114,11 +102,11 @@ int main(int argc, char *argv[]){
 	porte_rit[2] = htons(rit_port[2]);
 
 	printf("IP ritardatore: %s\n", remote_ip);
-    printf("local TCP port: %d\n", local_port_tcp);
-    printf("local UDP port: %d\n", local_port_udp);
-    printf("prima porta ritardatore: %d\n", rit_port[0]);
+  printf("porta TCP: %d\n", local_port_tcp);
+  printf("porta UDP: %d\n", local_port_udp);
+  printf("porta ritardatore: %d\n", rit_port[0]);
 	
-    /********************************************************/
+  /********************************************************/
 
 	/* inizializzazione del socket UDP (utils.c) */
 	udp_sock = UDP_sock(local_port_udp);
@@ -205,10 +193,9 @@ int main(int argc, char *argv[]){
 					/* chiusura della connessione TCP */
 					close(tcp_sock);
 					/* il descrittore del socket viene impostato a -1 per 
-                     * avviare le operazioni di chiusura del protocollo UDP */
+           * avviare le operazioni di chiusura del protocollo UDP */
 					tcp_sock = -1;
 				} else {
-
 					/* l'ID dei datagram UDP è progressivo, parte da 1 */
 					progressive_id++;
 					/* l'ID viene convertito nell'endianess di rete */
@@ -222,7 +209,7 @@ int main(int argc, char *argv[]){
 
 					/* l'ID viene riconvertito nell'endianess della macchina
 					 * e il pacchetto viene inserito nella lista dei datagram 
-                     * da confermare con ACK. L'inserimento avviene in coda */
+           * da confermare con ACK. L'inserimento avviene in coda */
 					buf_p.id = ntohl(buf_p.id);
 					aggiungi(&to_ack, buf_p, nread+HEADERSIZE);
 				}
@@ -258,18 +245,18 @@ int main(int argc, char *argv[]){
 							/* stampo le statistiche */
 							overhead = (quanti_datagram_inviati - quanti_pacchetti_tcp) * 100 / quanti_pacchetti_tcp;
 							printf("---- statistiche ----\n");
-                            printf("timeout: %d\n", quanti_timeout);
-                            printf("pacchetti tcp ricevuti: %d\n", quanti_pacchetti_tcp);
-                            printf("datagram udp inviati: %d\n", quanti_datagram_inviati);
-                            printf("icmp: %d\n", quanti_icmp);
-                            printf("ack: %d\n", overhead);
-                            printf("overhead: %d%%\n", overhead);
+							printf("timeout: %d\n", quanti_timeout);
+							printf("pacchetti tcp ricevuti: %d\n", quanti_pacchetti_tcp);
+							printf("datagram udp inviati: %d\n", quanti_datagram_inviati);
+							printf("icmp: %d\n", quanti_icmp);
+							printf("ack: %d\n", overhead);
+							printf("overhead: %d%%\n", overhead);
 							exit(EXIT_SUCCESS);
 						}
 					}
 					/* se viene ricevuto un ICMP il pacchetto corrispondente
-					 * deve essere rimosso dalla lista, inviato di nuovo e inserito
-					 * in coda alla lista */
+					 * deve essere rimosso dalla lista, inviato di nuovo e 
+					 * inserito in coda alla lista */
 					if(buf_p.tipo == 'I'){
 						quanti_icmp++;
 						buf_l = rimuovi(&to_ack, ((ICMP*)&buf_p)->idpck);
