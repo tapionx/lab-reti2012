@@ -4,6 +4,9 @@
  * 	casuale, simulando una rete reale
  */
 
+/* Necessario per utilizzare inet_aton senza warning */
+#define _GNU_SOURCE
+
 /* File di header */
 #include <stdio.h>
 #include <string.h>
@@ -55,6 +58,8 @@ int main(int argc, char *argv[]){
 	int quanti_ack = 0;
 	int overhead = 0;
 
+	struct in_addr indirizzo_ritardatore;
+	
 	/* per gestire il timeout dei pacchetti */
 	struct timeval timeout;
 
@@ -100,7 +105,9 @@ int main(int argc, char *argv[]){
 
 	/* Variabili copiate nell'endianess di rete per migliorare le
 	 * prestazioni quando vengono filtrati i pacchetti in ingresso */
-	ip_ritardatore = inet_addr(remote_ip);
+	if(!inet_aton(remote_ip, &indirizzo_ritardatore))
+		perror("inet_aton()");
+	ip_ritardatore = indirizzo_ritardatore.s_addr;
 	porte_rit[0] = htons(rit_port[0]);
 	porte_rit[1] = htons(rit_port[1]);
 	porte_rit[2] = htons(rit_port[2]);
@@ -154,7 +161,7 @@ int main(int argc, char *argv[]){
 
 		/* incremento del turno della porta del ritardatore */
 		rit_turno = (rit_turno + 1) % 3;
-		name_socket(&to, inet_addr(remote_ip), rit_port[rit_turno]);
+		name_socket(&to, ip_ritardatore, rit_port[rit_turno]);
 
 		/* inizializzo le strutture per la select()
 		 * il socket tcp viene aggiunto solo se è ancora attivo */

@@ -4,6 +4,9 @@
  * 	casuale, simulando una rete reale
  */
 
+/* Necessario per utilizzare inet_aton senza warning */
+#define _GNU_SOURCE
+
 /* file di header */
 #include <stdio.h>
 #include <unistd.h>
@@ -48,6 +51,8 @@ int main(int argc, char *argv[]){
 	fd_set rfds;
 	struct timeval tv;
 	int retval;
+	
+	struct in_addr indirizzo_ritardatore;
 
 	/* recupero parametri da riga di comando
  	 * nessun parametro è obbligatorio, infatti se un parametro non
@@ -86,7 +91,9 @@ int main(int argc, char *argv[]){
 	/* copia dell'ip del ritardatore in endianess di rete per
 	 * migliori performance durante il filtraggio */
 	/* stampa dei parametri utilizzati */
-	ip_ritardatore = inet_addr(ritardatore_ip);
+	if(!inet_aton(remote_ip, &indirizzo_ritardatore))
+		perror("inet_aton()\n");
+	ip_ritardatore = indirizzo_ritardatore.s_addr;
 
     printf("IP ritardatore: %s\n", ritardatore_ip);
 	printf("IP receiver: %s\n", remote_ip);
@@ -166,7 +173,7 @@ int main(int argc, char *argv[]){
 				/* Imposto la destinazione dell'ACK
 				 * inviandolo sullo stesso canale dal quale è arrivato
 				 * l'udp perchè probabilmente non è in BURST */
-				name_socket(&to,inet_addr(ritardatore_ip),ntohs(from.sin_port));
+				name_socket(&to, ip_ritardatore, ntohs(from.sin_port));
 
 				/* invio ACK del pacchetto ricevuto */
 				writen(udp_sock, (char*)&buf, HEADERSIZE+1, &to);

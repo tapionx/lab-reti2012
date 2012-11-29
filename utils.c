@@ -1,3 +1,6 @@
+/* Necessario per utilizzare inet_aton senza warning */
+#define _GNU_SOURCE
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -307,7 +310,11 @@ int TCP_connection_send(const char *remote_ip, int remote_port){
 
     int tcp_sock;
     struct sockaddr_in local, server;
+	struct in_addr indirizzo_ip;
 
+	if(!inet_aton(remote_ip, &indirizzo_ip))
+		perror("inet_aton() in TCP_connection_send()\n");
+	
     tcp_sock = get_socket(SOCK_STREAM);
 
     sock_opt_reuseaddr(tcp_sock);
@@ -316,7 +323,7 @@ int TCP_connection_send(const char *remote_ip, int remote_port){
 
     sock_bind(tcp_sock, &local);
 
-    name_socket(&server, inet_addr(remote_ip), remote_port);
+    name_socket(&server, indirizzo_ip.s_addr, remote_port);
 
     sock_connect(tcp_sock, &server);
 
