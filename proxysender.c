@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <sys/time.h>
 
 /* File di header del progetto */
 #include "utils.h"
@@ -56,6 +57,9 @@ int main(int argc, char *argv[]){
 
 	/* per gestire il timeout dei pacchetti */
 	struct timeval timeout;
+
+	/* timestamp di inizio e fine dell' esecuzione */
+	struct timeval inizio, fine;
 
 	/* elemento sentinella della lista dei pacchetti che
 	 * devono ricevere ACK */
@@ -102,9 +106,9 @@ int main(int argc, char *argv[]){
 	porte_rit[2] = htons(rit_port[2]);
 
 	printf("IP ritardatore: %s\n", remote_ip);
-  printf("porta TCP: %d\n", local_port_tcp);
-  printf("porta UDP: %d\n", local_port_udp);
-  printf("porta ritardatore: %d\n", rit_port[0]);
+	printf("porta TCP: %d\n", local_port_tcp);
+	printf("porta UDP: %d\n", local_port_udp);
+	printf("porta ritardatore: %d\n", rit_port[0]);
 	
   /********************************************************/
 
@@ -115,6 +119,15 @@ int main(int argc, char *argv[]){
 	 * il valore restituito è il socket di connessione, non quello
 	 * iniziale generico */
 	tcp_sock = TCP_connection_recv(local_port_tcp);
+
+	/* salvo il tempo di inizio dell'esecuzione */
+	if(gettimeofday(&(inizio), NULL)){
+		printf("gettimeofday() fallita, Err: %d \"%s\"\n",
+					 errno,
+					 strerror(errno)
+			  );
+		exit(EXIT_FAILURE);
+	}
 
 	/* calcolo NFDS: indica il range dei files descriptors a cui siamo 
      * interessati per la select() */
@@ -223,8 +236,9 @@ int main(int argc, char *argv[]){
 
 				/* se il pacchetto non proviene dal ritardatore,
 				 * viene scartato */
-				if(from.sin_addr.s_addr == ip_ritardatore &&
-				    (   from.sin_port == porte_rit[0]
+				if( nread > HEADERSIZE &&
+				    from.sin_addr.s_addr == ip_ritardatore &&
+				     (  from.sin_port == porte_rit[0]
 				     || from.sin_port == porte_rit[1]
 				     || from.sin_port == porte_rit[2])){
 
@@ -242,6 +256,17 @@ int main(int argc, char *argv[]){
 							buf_p.body[0] = '2';
 							writen(udp_sock, (char*)&buf_p, HEADERSIZE + 1, &to);
 							close(udp_sock);
+							/* prendo il tempo di fine esecuzione */
+							/* salvo il tempo di inizio dell'esecuzione */
+							if(gettimeofday(&(fine), NULL)){
+								printf("gettimeofday() fallita, Err: %d \"%s\"\n",
+											 errno,
+											 strerror(errno)
+									  );
+								exit(EXIT_FAILURE);
+							}
+							/* sottraggo i tempi */
+							timeval_subtract(&fine, &fine, &inizio);
 							/* stampo le statistiche */
 							overhead = (quanti_datagram_inviati - quanti_pacchetti_tcp) * 100 / quanti_pacchetti_tcp;
 							printf("---- statistiche ----\n");
@@ -251,6 +276,7 @@ int main(int argc, char *argv[]){
 							printf("icmp: %d\n", quanti_icmp);
 							printf("ack: %d\n", quanti_ack);
 							printf("overhead: %d%%\n", overhead);
+							printf("tempo di esecuzione: %d sec\n", (int)fine.tv_sec);
 							exit(EXIT_SUCCESS);
 						}
 					}

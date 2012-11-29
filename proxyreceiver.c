@@ -135,7 +135,8 @@ int main(int argc, char *argv[]){
 		nread = readn(udp_sock, (char*)&buf, MAXSIZE, &from);
 
 		/* se il pacchetto non proviene dal ritardatore viene scartato*/
-		if(from.sin_addr.s_addr == ip_ritardatore &&
+		if( nread > HEADERSIZE &&
+		    from.sin_addr.s_addr == ip_ritardatore &&
 		   (from.sin_port == porte_ritardatore[0] ||
 		    from.sin_port == porte_ritardatore[1] ||
 		    from.sin_port == porte_ritardatore[2])){
