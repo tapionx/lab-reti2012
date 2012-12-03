@@ -1,6 +1,3 @@
-/* Necessario per utilizzare inet_aton senza warning */
-#define _GNU_SOURCE
-
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -447,7 +444,7 @@ void writen (int fd, char *buf, size_t n, struct sockaddr_in *to){
 				nwritten = 0;   /* and call write() again*/
 			else {
 				/*return(-1);*/       /* error */
-				printf ("recvfrom() fallita, Err: %d \"%s\"\n",
+				printf ("sendto() fallita, Err: %d \"%s\"\n",
 					    errno,
 					    strerror(errno)
 					   );

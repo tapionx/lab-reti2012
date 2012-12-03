@@ -4,9 +4,6 @@
  * 	casuale, simulando una rete reale
  */
 
-/* Necessario per utilizzare inet_aton senza warning */
-#define _GNU_SOURCE
-
 /* file di header */
 #include <stdio.h>
 #include <unistd.h>
@@ -94,7 +91,6 @@ int main(int argc, char *argv[]){
 	indirizzo_ritardatore = DNSquery(ritardatore_ip);
 	ip_ritardatore = indirizzo_ritardatore.s_addr;
 	indirizzo_receiver = DNSquery(remote_ip);
-
 
     printf("IP ritardatore: %s\n", inet_ntoa(indirizzo_ritardatore));
 	printf("IP receiver: %s\n", inet_ntoa(indirizzo_receiver));

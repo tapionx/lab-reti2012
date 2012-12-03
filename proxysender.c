@@ -4,9 +4,6 @@
  * 	casuale, simulando una rete reale
  */
 
-/* Necessario per utilizzare inet_aton senza warning */
-#define _GNU_SOURCE
-
 /* File di header */
 #include <stdio.h>
 #include <string.h>
@@ -214,7 +211,7 @@ int main(int argc, char *argv[]){
 					/* chiusura della connessione TCP */
 					close(tcp_sock);
 					/* il descrittore del socket viene impostato a -1 per 
-           * avviare le operazioni di chiusura del protocollo UDP */
+					 * avviare le operazioni di chiusura del protocollo UDP */
 					tcp_sock = -1;
 				} else {
 					/* l'ID dei datagram UDP è progressivo, parte da 1 */
@@ -230,7 +227,7 @@ int main(int argc, char *argv[]){
 
 					/* l'ID viene riconvertito nell'endianess della macchina
 					 * e il pacchetto viene inserito nella lista dei datagram 
-           * da confermare con ACK. L'inserimento avviene in coda */
+					 * da confermare con ACK. L'inserimento avviene in coda */
 					buf_p.id = ntohl(buf_p.id);
 					aggiungi(&to_ack, buf_p, nread+HEADERSIZE);
 				}
