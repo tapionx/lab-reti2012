@@ -105,14 +105,13 @@ int main(int argc, char *argv[]){
 
 	/* Variabili copiate nell'endianess di rete per migliorare le
 	 * prestazioni quando vengono filtrati i pacchetti in ingresso */
-	if(!inet_aton(remote_ip, &indirizzo_ritardatore))
-		perror("inet_aton()");
+	indirizzo_ritardatore = DNSquery(remote_ip);
 	ip_ritardatore = indirizzo_ritardatore.s_addr;
 	porte_rit[0] = htons(rit_port[0]);
 	porte_rit[1] = htons(rit_port[1]);
 	porte_rit[2] = htons(rit_port[2]);
 
-	printf("IP ritardatore: %s\n", remote_ip);
+	printf("IP ritardatore: %s\n", inet_ntoa(indirizzo_ritardatore));
 	printf("porta TCP: %d\n", local_port_tcp);
 	printf("porta UDP: %d\n", local_port_udp);
 	printf("porta ritardatore: %d\n", rit_port[0]);
@@ -121,6 +120,8 @@ int main(int argc, char *argv[]){
 
 	/* inizializzazione del socket UDP (utils.c) */
 	udp_sock = UDP_sock(local_port_udp);
+	
+	printf("In attesa di connessione da parte del sender...\n");
 
 	/* inizializzazione del socket TCP (utils.c)
 	 * il valore restituito è il socket di connessione, non quello

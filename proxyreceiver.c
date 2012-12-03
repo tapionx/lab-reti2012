@@ -52,7 +52,7 @@ int main(int argc, char *argv[]){
 	struct timeval tv;
 	int retval;
 	
-	struct in_addr indirizzo_ritardatore;
+	struct in_addr indirizzo_ritardatore, indirizzo_receiver;
 
 	/* recupero parametri da riga di comando
  	 * nessun parametro è obbligatorio, infatti se un parametro non
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]){
 		strcpy(ritardatore_ip, argv[1]);
 	else
 		strcpy(ritardatore_ip, "127.0.0.1");
-	/* IP del sender, default localhost */
+	/* IP del receiver, default localhost */
 	if(argc > 2)
 		strcpy(remote_ip, argv[2]);
 	else
@@ -91,12 +91,13 @@ int main(int argc, char *argv[]){
 	/* copia dell'ip del ritardatore in endianess di rete per
 	 * migliori performance durante il filtraggio */
 	/* stampa dei parametri utilizzati */
-	if(!inet_aton(remote_ip, &indirizzo_ritardatore))
-		perror("inet_aton()\n");
+	indirizzo_ritardatore = DNSquery(ritardatore_ip);
 	ip_ritardatore = indirizzo_ritardatore.s_addr;
+	indirizzo_receiver = DNSquery(remote_ip);
 
-    printf("IP ritardatore: %s\n", ritardatore_ip);
-	printf("IP receiver: %s\n", remote_ip);
+
+    printf("IP ritardatore: %s\n", inet_ntoa(indirizzo_ritardatore));
+	printf("IP receiver: %s\n", inet_ntoa(indirizzo_receiver));
     printf("porta proxyreceiver: %d\n", local_port);
     printf("porta receiver: %d\n", remote_port);
     printf("prima porta ritardatore: %d\n", ntohs(porte_ritardatore[0]));
@@ -105,7 +106,7 @@ int main(int argc, char *argv[]){
 	udp_sock = UDP_sock(local_port);
 	/* inizializzazione del socket TCP, viene ritornato il socket di
 	 * connessione, non quello generico */
-	tcp_sock = TCP_connection_send(remote_ip, remote_port);
+	tcp_sock = TCP_connection_send(indirizzo_receiver, remote_port);
 
 	name_socket(&from, htonl(INADDR_ANY), 0);
 

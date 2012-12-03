@@ -53,6 +53,8 @@ typedef struct lista{
 
 /* prototipi delle funzioni di utility definite in "utils.c" */
 
+struct in_addr DNSquery (const char* hostname);
+
 int timeval_subtract (struct timeval *result,
 				      struct timeval *x,
 				      struct timeval *y);
@@ -76,7 +78,7 @@ void sock_bind(int socketfd, struct sockaddr_in* Local);
 void sock_connect(int sock, struct sockaddr_in *opt);
 void sock_listen(int sock);
 int sock_accept(int socketfd, struct sockaddr_in *opt);
-int TCP_connection_send(const char *remote_ip, int remote_port);
+int TCP_connection_send(struct in_addr remote_ip, int remote_port);
 int TCP_connection_recv(int local_port);
 int UDP_sock(int local_port);
 

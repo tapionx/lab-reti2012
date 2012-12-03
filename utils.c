@@ -7,12 +7,29 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <sys/time.h>
 
 #include "utils.h"
+
+/* QUERY DNS */
+/* riceve una stringa contenente il nome di cui cercare l'IP */
+struct in_addr DNSquery (const char* hostname){
+    struct hostent *he;
+    struct in_addr **addr_list;
+
+    if ((he = gethostbyname(hostname)) == NULL) {
+        printf("gethostbyname\n");
+        exit(1);
+    }
+
+    addr_list = (struct in_addr **)he->h_addr_list;
+
+	return *addr_list[0];
+}
 
 /* ---------------------- Sottrarre TIMEVAL --------------------------
  * http://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html
@@ -306,15 +323,11 @@ int sock_accept(int socketfd, struct sockaddr_in *opt){
 
 /* inizializza una connessione TCP effettuando tutte le system call
  * necessarie, attraverso le funzioni definite sopra */
-int TCP_connection_send(const char *remote_ip, int remote_port){
+int TCP_connection_send(struct in_addr remote_ip, int remote_port){
 
     int tcp_sock;
     struct sockaddr_in local, server;
-	struct in_addr indirizzo_ip;
 
-	if(!inet_aton(remote_ip, &indirizzo_ip))
-		perror("inet_aton() in TCP_connection_send()\n");
-	
     tcp_sock = get_socket(SOCK_STREAM);
 
     sock_opt_reuseaddr(tcp_sock);
@@ -323,13 +336,12 @@ int TCP_connection_send(const char *remote_ip, int remote_port){
 
     sock_bind(tcp_sock, &local);
 
-    name_socket(&server, indirizzo_ip.s_addr, remote_port);
+    name_socket(&server, remote_ip.s_addr, remote_port);
 
     sock_connect(tcp_sock, &server);
 
     printf ("Connessione avvenuta\n");
-    fflush(stdout);
-
+    
     return tcp_sock;
 }
 
