@@ -22,7 +22,7 @@ struct in_addr DNSquery (const char* hostname){
     struct in_addr **addr_list;
 
     if ((he = gethostbyname(hostname)) == NULL) {
-        printf("gethostbyname\n");
+        printf("Nome DNS non trovato\n");
         exit(1);
     }
 
