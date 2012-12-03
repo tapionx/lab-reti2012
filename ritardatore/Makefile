@@ -10,10 +10,14 @@ Ritardatore.o:	Ritardatore.c Util.h
 	gcc -c ${GCCFLAGS} Ritardatore.c
 
 Ritardatore.exe:	Ritardatore.o Util.o
-	gcc -o Ritardatore.exe ${GCCFLAGS} Util.o Ritardatore.o ${LINKERFLAGS} 
+	gcc -o Ritardatore.exe ${GCCFLAGS} Util.o Ritardatore.o ${LINKERFLAGS}
 
 clean:	
 	rm -f core* *.stackdump
 	rm -f *.exe
 	rm -f Ritardatore.o Ritardatore.exe
 	rm -f Util.o
+
+
+
+
