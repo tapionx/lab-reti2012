@@ -142,7 +142,7 @@ int main(int argc, char *argv[]){
 	while(1){
 
 		/* se la connessione TCP è stata chiusa e sono stati inviati tutti
-		 * i pacchetti, invio un segnale di terminazione al proxyreceiver */
+		 * i pacchetti invio segnale di terminazione al proxyreceiver */
 		if( tcp_sock == -1 && nlist == 0){
 			buf_p.id = 0;
 			buf_p.tipo = 'B';
@@ -196,38 +196,45 @@ int main(int argc, char *argv[]){
 		/* altrimenti, se la select è stata interrotta da un socket */
 		else if (retsel) {
 
-			/* se è stato il socket TCP a svegliare dalla select
-			 * significa che ci sono dati disponibili da parte del sender */
+			/* se è stato il socket TCP a svegliare la select significa
+			 * che ci sono dati disponibili da parte del sender*/
 			if(FD_ISSET(tcp_sock, &rfds)){
 				quanti_pacchetti_tcp++;
 				/* lettura dei dati dal sender */
-				nread = readn(tcp_sock, (char*)buf_p.body, BODYSIZE, NULL );
+				nread = readn(tcp_sock, 
+				              (char*)buf_p.body, 
+				              BODYSIZE, 
+				              NULL
+				             );
 				/* NEL CASO DEL TCP SIAMO SICURI CHE IL MESSAGGIO
 				 * PROVENGA DAL SENDER */
-				/* se non viene letto nulla, significa che il sender ha chiuso
-				 * la connessione, quindi ha terminato di inviare dati */
+				/* se non viene letto nulla, significa che il sender ha 
+				 * chiuso la connessione quindi ha inviato tutti i dati */
 				if(nread == 0){
 					printf("\nLa connessione TCP e' stata chiusa\n");
 					/* chiusura della connessione TCP */
 					close(tcp_sock);
 					/* il descrittore del socket viene impostato a -1 per 
-					 * avviare le operazioni di chiusura del protocollo UDP */
+					 * avviare la chiusura del protocollo UDP */
 					tcp_sock = -1;
 				} else {
-					/* l'ID dei datagram UDP è progressivo, parte da 1 */
+					/* l'ID dei datagram UDP è progressivo, parte da 1*/
 					progressive_id++;
 					/* l'ID viene convertito nell'endianess di rete */
 					buf_p.id = htonl(progressive_id);
 					buf_p.tipo = 'B';
 
-					/* invio del datagram UDP contenente l'header generato
-					 * e il body ricevuto dal sender */
+					/* invio del datagram UDP contenente l'header 
+					 * generato e il body ricevuto dal sender */
 					quanti_datagram_inviati++;
-					writen(udp_sock, (char*)&buf_p, HEADERSIZE + nread, &to);
-
-					/* l'ID viene riconvertito nell'endianess della macchina
-					 * e il pacchetto viene inserito nella lista dei datagram 
-					 * da confermare con ACK. L'inserimento avviene in coda */
+					writen(udp_sock, 
+						   (char*)&buf_p, 
+						   HEADERSIZE + nread, 
+						   &to);
+					/* l'ID viene riconvertito nell'endianess della 
+					 * macchina e il pacchetto viene inserito nella lista
+					 * dei datagram da confermare con ACK. 
+					 * L'inserimento avviene in coda */
 					buf_p.id = ntohl(buf_p.id);
 					aggiungi(&to_ack, buf_p, nread+HEADERSIZE);
 				}
@@ -247,24 +254,27 @@ int main(int argc, char *argv[]){
 				     || from.sin_port == porte_rit[1]
 				     || from.sin_port == porte_rit[2])){
 
-					/* se viene ricevuto un ACK viene rimosso il rispettivo
-					 * pacchetto dalla lista */
+					/* se viene ricevuto un ACK viene rimosso il 
+					 * rispettivo pacchetto dalla lista */
 					if(buf_p.tipo == 'B'){
 						quanti_ack++;
 						buf_p.id = ntohl(buf_p.id);
 						buf_l = rimuovi(&to_ack, buf_p.id);
-						/* se viene ricevuto un ACK del segnale di terminazione
-						 * posso chiudere il programmma */
+						/* se viene ricevuto un ACK del segnale di 
+						 * terminazione posso chiudere il programmma */
 						if(buf_p.id == 0 && tcp_sock == -1 && nlist == 0){
 							printf("\nACK chiusura, terminazione.\n");
 							/* Invio ACK finale al proxyreceiver */
 							buf_p.body[0] = '2';
-							writen(udp_sock, (char*)&buf_p, HEADERSIZE + 1, &to);
+							writen(udp_sock, 
+								   (char*)&buf_p, 
+								   HEADERSIZE+1, 
+								   &to);
 							close(udp_sock);
-							/* prendo il tempo di fine esecuzione */
-							/* salvo il tempo di inizio dell'esecuzione */
+							/* prendo il tempo di fine esecuzione salvo 
+							 * il tempo di inizio dell'esecuzione */
 							if(gettimeofday(&(fine), NULL)){
-								printf("gettimeofday() fallita, Err: %d \"%s\"\n",
+								printf("gettimeofday(), Err: %d %s\n",
 											 errno,
 											 strerror(errno)
 									  );
@@ -276,26 +286,32 @@ int main(int argc, char *argv[]){
 							overhead = (quanti_datagram_inviati - quanti_pacchetti_tcp) * 100 / quanti_pacchetti_tcp;
 							printf("---- statistiche ----\n");
 							printf("timeout: %d\n", quanti_timeout);
-							printf("pacchetti tcp ricevuti: %d\n", quanti_pacchetti_tcp);
-							printf("datagram udp inviati: %d\n", quanti_datagram_inviati);
+							printf("pacchetti tcp ricevuti: %d\n", 
+									quanti_pacchetti_tcp);
+							printf("datagram udp inviati: %d\n", 
+									quanti_datagram_inviati);
 							printf("icmp: %d\n", quanti_icmp);
 							printf("ack: %d\n", quanti_ack);
 							printf("overhead: %d%%\n", overhead);
-							printf("tempo di esecuzione: %d sec\n", (int)fine.tv_sec);
+							printf("tempo di esecuzione: %d sec\n", 
+									(int)fine.tv_sec);
 							exit(EXIT_SUCCESS);
 						}
 					}
-					/* se viene ricevuto un ICMP il pacchetto corrispondente
+					/* se viene ricevuto ICMP il pacchetto corrispondente
 					 * deve essere rimosso dalla lista, inviato di nuovo e 
 					 * inserito in coda alla lista */
 					if(buf_p.tipo == 'I'){
 						quanti_icmp++;
 						buf_l = rimuovi(&to_ack, ((ICMP*)&buf_p)->idpck);
-						/* se il pacchetto non è nella lista ignoro l'ICMP */
+						/* se il pacchetto non è nella lista ignoro ICMP */
 						if(buf_l.p.tipo != 'E'){
 							buf_l.p.id = htonl(buf_l.p.id);
 							quanti_datagram_inviati++;
-							writen(udp_sock, (char*)&buf_l.p, buf_l.size, &to);
+							writen(udp_sock, 
+								   (char*)&buf_l.p, 
+								   buf_l.size, 
+								   &to);
 							buf_l.p.id = ntohl(buf_l.p.id);
 							aggiungi(&to_ack, buf_l.p, buf_l.size);
 						}

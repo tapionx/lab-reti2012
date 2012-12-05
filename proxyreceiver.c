@@ -186,13 +186,14 @@ int main(int argc, char *argv[]){
 				/* se il datagram appena arrivato ha permesso l'invio di
 				 * altri pacchetti in ordine al receiver, li rimuovo dalla
 				 * lista e li invio in TCP */
-				while(to_send.next != NULL && to_send.next->p.id==id_to_wait){
+				while(to_send.next != NULL && 
+				       to_send.next->p.id==id_to_wait){
 					/* azzero i buffer */
 					memset(&buf_l, 0, sizeof(lista));
 					memset(&buf_l.p, 0, sizeof(packet));
 					/* rimuovo il pacchetto in testa alla lista */
 					buf_l = pop(&to_send);
-					/* invio il pacchetto in TCP al receiver, senza header*/
+					/* invio il pacchetto al receiver senza header*/
 					writen( tcp_sock,
 							buf_l.p.body,
 							buf_l.size,

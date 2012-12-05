@@ -232,7 +232,7 @@ int get_socket(int type){
    int socketfd;
    socketfd = socket(AF_INET, type, 0);
     if (socketfd == -1) {
-        printf ("socket() fallita, Err: %d \"%s\"\n", errno,strerror(errno));
+        printf ("socket() fallita, Err: %d %s\n", errno,strerror(errno));
         exit(1);
     }
     return socketfd;
@@ -259,7 +259,9 @@ void sock_opt_reuseaddr(int socketfd){
 }
 
 /* popola la struttura sockaddr_in con indirizzo e porta */
-void name_socket(struct sockaddr_in *opt, uint32_t ip_address, uint16_t port){
+void name_socket(struct sockaddr_in *opt,
+				 uint32_t ip_address,
+				 uint16_t port){
     /* name the socket */
     memset(opt, 0, sizeof(*opt));
     opt->sin_family      =   AF_INET;
@@ -275,7 +277,7 @@ void sock_bind(int socketfd, struct sockaddr_in* Local){
     int ris;
     ris = bind(socketfd, (struct sockaddr*) Local, sizeof(*Local));
     if (ris == -1)  {
-        printf ("bind() fallita, Err: %d \"%s\"\n",errno,strerror(errno));
+        printf ("bind() fallita, Err: %d %s\n",errno,strerror(errno));
         exit(1);
     }
 }
@@ -286,7 +288,7 @@ void sock_connect(int sock, struct sockaddr_in *opt){
     int ris;
     ris = connect(sock, (struct sockaddr*) opt, sizeof(*opt));
     if (ris == -1)  {
-        printf ("connect() fallita, Err: %d \"%s\"\n",errno,strerror(errno));
+        printf ("connect() fallita, Err: %d %s\n",errno,strerror(errno));
         exit(1);
     }
 }
@@ -297,7 +299,7 @@ void sock_listen(int sock){
     int ris;
     ris = listen(sock, 10 );
     if (ris == -1) {
-        printf ("listen() fallita, Err: %d \"%s\"\n",errno,strerror(errno));
+        printf ("listen() fallita, Err: %d %s\n",errno,strerror(errno));
         exit(1);
     }
 }
@@ -310,9 +312,12 @@ int sock_accept(int socketfd, struct sockaddr_in *opt){
     memset (opt, 0, sizeof(*opt) );
     /* wait for connection request */
     len=sizeof(*opt);
-    newsocketfd = accept(socketfd, (struct sockaddr*) opt, (socklen_t *)&len);
+    newsocketfd = accept(socketfd, 
+						 (struct sockaddr*) opt, 
+						 (socklen_t *)&len
+						);
     if (newsocketfd == -1)  {
-        printf ("accept() fallita, Err: %d \"%s\"\n",errno,strerror(errno));
+        printf ("accept() fallita, Err: %d %s\n",errno,strerror(errno));
         exit(1);
     }
     return newsocketfd;
